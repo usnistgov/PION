@@ -1,0 +1,56 @@
+name: build
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: arduino/setup-arduino-cli@v1.1.1
+      - name: install Arduino cores and libraries
+        run: |
+          arduino-cli version
+          arduino-cli core update-index --additional-urls $ARDUINO_CORE_URI
+          arduino-cli core install esp32:esp32 --additional-urls $ARDUINO_CORE_URI
+          arduino-cli lib update-index
+          arduino-cli lib install ArduinoUnit
+        env:
+          ARDUINO_CORE_URI: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install esptool
+      - uses: actions/checkout@v2
+      - name: check code style
+        run: |
+          mk/format-code.sh
+          [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
+      - name: checkout Pesa/spake2-mbed
+        uses: actions/checkout@v2
+        with:
+          repository: Pesa/spake2-mbed
+          token: ${{ secrets.GH_PAT }}
+          path: spake2-mbed
+      - run: mk/update-vendor.sh
+      - name: link library
+        run: |
+          mkdir -p $HOME/Arduino/libraries/NDNph $HOME/Arduino/libraries/esp8266ndn
+          cd $HOME/Arduino/libraries
+          ln -s $GITHUB_WORKSPACE ndn-onboarding
+          curl -sfL https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz | tar -C NDNph -xz --strip-components=1
+          curl -sfL https://github.com/yoursunny/esp8266ndn/archive/${ESP8266NDN_VERSION}.tar.gz | tar -C esp8266ndn -xz --strip-components=1
+        env:
+          NDNPH_VERSION: develop
+          ESP8266NDN_VERSION: develop
+      - name: compile examples
+        run: |
+          for D in $(find ./examples -name '*.ino' -printf '%h\n'); do
+            printf "\n---- \033[1;35mBuild $D\033[0m ----\n"
+            arduino-cli compile -b $FQBN $D
+          done
+        env:
+          FQBN: esp32:esp32:heltec_wifi_kit_32

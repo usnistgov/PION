@@ -1,0 +1,4 @@
+/.vscode
+/build*
+/spake2-mbed
+/src/vendor/
