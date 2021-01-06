@@ -10,5 +10,20 @@ sed \
   spake2-mbed/mbedtls-wrappers.hpp > src/vendor/mbedtls-wrappers.hpp
 
 sed \
-  -e '/mbedtls-wrappers\.hpp/ i\#include <endian.h>' \
+  -e '/#define SPAKE2_DEBUG/ d' \
+  -e '/TODO: move to \.cpp/,/namespace/ d' \
+  -e '/#endif.*HPP/ i\} // namespace spake2' \
   spake2-mbed/spake2.hpp > src/vendor/spake2.hpp
+
+sed \
+  -e '1 i\#include "spake2.hpp"' \
+  -e '1 i\#include <endian.h>' \
+  -e '1 i\namespace spake2 {' \
+  -e '1,/TODO: move to \.cpp/ d' \
+  -e '/SPAKE2_MBED_SPAKE2_HPP/ d' \
+  spake2-mbed/spake2.hpp > src/vendor/spake2.cpp
+
+if ! [[ -f src/vendor/mbedtls-hkdf.c ]]; then
+  curl -sfL https://github.com/espressif/mbedtls/raw/mbedtls-2.13.1/library/hkdf.c | \
+  sed -e '1 i\#define MBEDTLS_HKDF_C' > src/vendor/mbedtls-hkdf.c
+fi

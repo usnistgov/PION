@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-18.04
     steps:
       - uses: arduino/setup-arduino-cli@v1.1.1
       - name: install Arduino cores and libraries
@@ -22,13 +22,30 @@ jobs:
           python-version: '3.8'
       - name: install dependencies
         run: |
+          sudo apt-get install libboost-dev
           python -m pip install --upgrade pip
-          pip install esptool
-      - uses: actions/checkout@v2
-      - name: check code style
+          pip install cmake esptool meson ninja
+      - name: install Mbed TLS
         run: |
-          mk/format-code.sh
-          [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
+          mkdir -p $HOME/mbedtls $HOME/mbedtls-build
+          curl -sfL https://github.com/ARMmbed/mbedtls/archive/${MBEDTLS_VERSION}.tar.gz | tar -C $HOME/mbedtls -xz --strip-components=1
+          cd $HOME/mbedtls-build
+          cmake -G Ninja $HOME/mbedtls -DENABLE_PROGRAMS=0 -DENABLE_TESTING=0
+          ninja
+          sudo $(which ninja) install
+        env:
+          MBEDTLS_VERSION: v2.25.0
+      - name: install NDNph
+        run: |
+          mkdir -p $HOME/NDNph
+          curl -sfL https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz | tar -C $HOME/NDNph -xz --strip-components=1
+          cd $HOME/NDNph
+          meson build -Dunittest=disabled -Dprograms=disabled
+          ninja -C build
+          sudo $(which ninja) -C build install
+        env:
+          NDNPH_VERSION: develop
+      - uses: actions/checkout@v2
       - name: checkout Pesa/spake2-mbed
         uses: actions/checkout@v2
         with:
@@ -38,16 +55,27 @@ jobs:
       - run: mk/update-vendor.sh
       - name: link library
         run: |
-          mkdir -p $HOME/Arduino/libraries/NDNph $HOME/Arduino/libraries/esp8266ndn
+          mkdir -p $HOME/Arduino/libraries/esp8266ndn
           cd $HOME/Arduino/libraries
           ln -s $GITHUB_WORKSPACE ndn-onboarding
-          curl -sfL https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz | tar -C NDNph -xz --strip-components=1
+          ln -s $HOME/NDNph NDNph
           curl -sfL https://github.com/yoursunny/esp8266ndn/archive/${ESP8266NDN_VERSION}.tar.gz | tar -C esp8266ndn -xz --strip-components=1
         env:
-          NDNPH_VERSION: develop
           ESP8266NDN_VERSION: develop
-      - name: compile examples
+      - name: check meson.build lists and code style
         run: |
+          mk/update-list.sh
+          mk/format-code.sh
+          [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
+      - name: build CLI programs
+        run: |
+          meson build -Dbuildtype=debug -Dwerror=true
+          ninja -C build
+      - name: compile Arduino sketches
+        run: |
+          for F in $(find ./examples -name 'sample.*'); do
+            [[ -f "${F/sample./}" ]] || cp "${F}" "${F/sample.//}"
+          done
           for D in $(find ./examples -name '*.ino' -printf '%h\n'); do
             printf "\n---- \033[1;35mBuild $D\033[0m ----\n"
             arduino-cli compile -b $FQBN $D
