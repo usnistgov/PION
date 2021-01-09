@@ -45,14 +45,9 @@ loop()
   static auto lastState = ndnob::pake::Device::State::Idle;
   auto state = device->getState();
   if (state != lastState) {
-    Serial.printf("state=%d\n", static_cast<int>(state));
-    if (state == ndnob::pake::Device::State::WaitCredentialRequest) {
-      Serial.print("key=");
-      for (auto b : device->getKey()) {
-        Serial.printf("%02X", b);
-      }
-      Serial.println();
-    }
     lastState = state;
+    Serial.printf("state=%d\n", static_cast<int>(state));
+    Serial.print("device-name=");
+    Serial.println(device->getDeviceName());
   }
 }

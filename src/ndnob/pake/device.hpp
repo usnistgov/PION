@@ -27,10 +27,13 @@ public:
     Idle,
     WaitPakeRequest,
     WaitConfirmRequest,
+    FetchCaProfile,
     WaitCaProfile,
+    FetchAuthenticatorCert,
     WaitAuthenticatorCert,
+    SendConfirmResponse,
     WaitCredentialRequest,
-    WaitCompletion,
+    PendingCompletion,
     Success,
     Failure,
   };
@@ -41,9 +44,9 @@ public:
   }
 
   // XXX temporary
-  const std::array<uint8_t, 16>& getKey() const
+  const ndnph::Name& getDeviceName() const
   {
-    return m_spake2->getSharedKey();
+    return m_deviceName;
   }
 
 private:
@@ -57,22 +60,34 @@ private:
 
   bool handleConfirmRequest(ndnph::Interest interest);
 
+  void sendConfirmResponse();
+
   bool handleCredentialRequest(ndnph::Interest interest);
+
+  void sendFetchInterest(const ndnph::Name& name, State nextState);
 
   bool processData(ndnph::Data data) final;
 
 private:
+  class GotoState;
   class PakeRequest;
   class PakeResponse;
   class ConfirmRequest;
 
   State m_state = State::Idle;
+  ndnph::port::Clock::Time m_deadline;
+  uint64_t m_lastPitToken = 0;
 
   ndnph::DynamicRegion m_region;
   ndnph::Name m_sessionPrefix;
   std::unique_ptr<spake2::Spake2> m_spake2;
-  ndnph::port::Clock::Time m_deadline;
-  uint64_t m_lastPitToken = 0;
+  std::unique_ptr<AesGcm> m_aes;
+
+  ndnph::Name m_confirmRequestInterestName;
+  PacketInfo m_confirmRequestPacketInfo;
+  ndnph::Name m_caProfileName;
+  ndnph::Name m_authenticatorCertName;
+  ndnph::Name m_deviceName;
 };
 
 } // namespace pake

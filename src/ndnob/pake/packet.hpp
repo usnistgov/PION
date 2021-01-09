@@ -114,6 +114,13 @@ struct CredentialResponse
 #undef NDNOB_PACKET_PRINT_FIELD_HEX
 
 } // namespace packet_struct
+
+using AesGcm = ndnph::mbedtls::AesGcm<128>;
+
+using Encrypted =
+  ndnph::EncryptedMessage<TT::InitializationVector, AesGcm::IvLen::value, TT::AuthenticationTag,
+                          AesGcm::TagLen::value, TT::EncryptedPayload>;
+
 } // namespace pake
 } // namespace ndnob
 

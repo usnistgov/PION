@@ -5,10 +5,38 @@ namespace pake {
 
 static constexpr int REQUEST_DEADLINE = 2000;
 
+class Authenticator::GotoState
+{
+public:
+  explicit GotoState(Authenticator* authenticator)
+    : m_authenticator(authenticator)
+  {}
+
+  bool operator()(State state, int deadline = REQUEST_DEADLINE)
+  {
+    m_authenticator->m_state = state;
+    m_authenticator->m_deadline = ndnph::port::Clock::add(ndnph::port::Clock::now(), deadline);
+    m_set = true;
+    return true;
+  }
+
+  ~GotoState()
+  {
+    if (!m_set) {
+      m_authenticator->m_state = State::Failure;
+    }
+  }
+
+private:
+  Authenticator* m_authenticator;
+  bool m_set = false;
+};
+
 class Authenticator::PakeRequest : public packet_struct::PakeRequest
 {
 public:
-  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, const ndnph::Component& session)
+  ndnph::Interest::Parameterized toInterest(ndnph::Region& region,
+                                            const ndnph::Component& session) const
   {
     ndnph::Encoder encoder(region);
     encoder.prependTlv(TT::Spake2T, ndnph::tlv::Value(spake2T, sizeof(spake2T)));
@@ -52,21 +80,41 @@ public:
 class Authenticator::ConfirmRequest : public packet_struct::ConfirmRequest
 {
 public:
-  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, const ndnph::Component& session)
+  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, const ndnph::Component& session,
+                                            AesGcm& aes) const
   {
-    ndnph::Encoder encoder(region);
-    // TODO encrypted-message portion
-    encoder.prependTlv(TT::Spake2Fkca, ndnph::tlv::Value(spake2Fkca, sizeof(spake2Fkca)));
-    encoder.trim();
+    ndnph::Encoder inner(region);
+    inner.prepend(
+      [this](ndnph::Encoder& encoder) { encoder.prependTlv(TT::Nc, nc); },
+      [this](ndnph::Encoder& encoder) { encoder.prependTlv(TT::CaProfileName, caProfileName); },
+      [this](ndnph::Encoder& encoder) {
+        encoder.prependTlv(TT::AuthenticatorCertName, authenticatorCertName);
+      },
+      [this](ndnph::Encoder& encoder) { encoder.prependTlv(TT::DeviceName, deviceName); },
+      [&](ndnph::Encoder& encoder) {
+        encoder.prepend(
+          ndnph::convention::Timestamp::create(region, ndnph::convention::TimeValue()));
+      });
+    inner.trim();
+    auto encrypted =
+      aes.encrypt<Encrypted>(region, ndnph::tlv::Value(inner), session.value(), session.length());
+
+    ndnph::Encoder outer(region);
+    outer.prepend(
+      [this](ndnph::Encoder& encoder) {
+        encoder.prependTlv(TT::Spake2Fkca, ndnph::tlv::Value(spake2Fkca, sizeof(spake2Fkca)));
+      },
+      encrypted);
+    outer.trim();
 
     ndnph::Name name =
       getLocalhopOnboardingPrefix().append(region, { session, getConfirmComponent() });
     ndnph::Interest interest = region.create<ndnph::Interest>();
-    if (!encoder || !name || !interest) {
+    if (!inner || !encrypted || !outer || !name || !interest) {
       return ndnph::Interest::Parameterized();
     }
     interest.setName(name);
-    return interest.parameterize(ndnph::tlv::Value(encoder));
+    return interest.parameterize(ndnph::tlv::Value(outer));
   }
 };
 
@@ -75,6 +123,8 @@ Authenticator::Authenticator(const Options& opts)
   , m_caProfile(opts.caProfile)
   , m_cert(opts.cert)
   , m_pvt(opts.pvt)
+  , m_nc(opts.nc)
+  , m_deviceName(opts.deviceName)
   , m_region(4096)
 {}
 
@@ -114,12 +164,7 @@ Authenticator::loop()
 {
   switch (m_state) {
     case State::SendPakeRequest: {
-      if (sendPakeRequest()) {
-        m_state = State::WaitPakeResponse;
-        m_deadline = ndnph::port::Clock::add(ndnph::port::Clock::now(), REQUEST_DEADLINE);
-      } else {
-        m_state = State::Failure;
-      }
+      sendPakeRequest();
       break;
     }
     case State::SendCredentialRequest: {
@@ -146,13 +191,7 @@ Authenticator::processData(ndnph::Data data)
   }
   switch (m_state) {
     case State::WaitPakeResponse: {
-      if (handlePakeResponse(data)) {
-        m_state = State::WaitConfirmResponse;
-        m_deadline = ndnph::port::Clock::add(ndnph::port::Clock::now(), REQUEST_DEADLINE);
-      } else {
-        m_state = State::Failure;
-      }
-      break;
+      return handlePakeResponse(data);
     }
     case State::WaitConfirmResponse: {
       break;
@@ -166,13 +205,15 @@ Authenticator::processData(ndnph::Data data)
   return false;
 }
 
-bool
+void
 Authenticator::sendPakeRequest()
 {
   ndnph::StaticRegion<2048> region;
+  GotoState gotoState(this);
   PakeRequest req;
-  return m_spake2->generateFirstMessage(req.spake2T, sizeof(req.spake2T)) &&
-         send(req.toInterest(region, m_session), WithPitToken(++m_lastPitToken));
+  m_spake2->generateFirstMessage(req.spake2T, sizeof(req.spake2T)) &&
+    send(req.toInterest(region, m_session), WithPitToken(++m_lastPitToken)) &&
+    gotoState(State::WaitPakeResponse);
 }
 
 bool
@@ -180,12 +221,32 @@ Authenticator::handlePakeResponse(ndnph::Data data)
 {
   ndnph::StaticRegion<2048> region;
   PakeResponse res;
+  if (!res.fromData(region, data)) {
+    return false;
+  }
+
+  GotoState gotoState(this);
   ConfirmRequest req;
-  return res.fromData(region, data) &&
-         m_spake2->processFirstMessage(res.spake2S, sizeof(res.spake2S)) &&
-         m_spake2->generateSecondMessage(req.spake2Fkca, sizeof(req.spake2Fkca)) &&
-         m_spake2->processSecondMessage(res.spake2Fkcb, sizeof(res.spake2Fkcb)) &&
-         send(req.toInterest(region, m_session), WithPitToken(++m_lastPitToken));
+  m_aes.reset(new AesGcm());
+  bool ok = m_spake2->processFirstMessage(res.spake2S, sizeof(res.spake2S)) &&
+            m_spake2->generateSecondMessage(req.spake2Fkca, sizeof(req.spake2Fkca)) &&
+            m_spake2->processSecondMessage(res.spake2Fkcb, sizeof(res.spake2Fkcb)) &&
+            m_aes->import(m_spake2->getSharedKey());
+  m_spake2.reset();
+  if (!ok) {
+    return true;
+  }
+
+  req.nc = m_nc;
+  req.caProfileName = m_caProfile.getFullName(region);
+  req.authenticatorCertName = m_cert.getFullName(region);
+  req.deviceName = m_deviceName;
+  // req.timestamp is ignored; current timestamp will be used
+  ok = send(req.toInterest(region, m_session, *m_aes), WithPitToken(++m_lastPitToken));
+  if (ok) {
+    gotoState(State::WaitConfirmResponse);
+  }
+  return true;
 }
 
 bool

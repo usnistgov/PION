@@ -32,6 +32,7 @@ nfd-stop
 
 ```bash
 export NDNPH_UPLINK_UDP=192.0.2.1 # device IPv4 address
+DEVICE_NAME=${NETWORK_PREFIX}/device-${RANDOM}
 
-ndnob-authenticator ${AUTHENTICATOR_KEYSLOT} ${CA_PROFILE_FILE}
+ndnob-authenticator ${AUTHENTICATOR_KEYSLOT} ${CA_PROFILE_FILE} ${DEVICE_NAME}
 ```

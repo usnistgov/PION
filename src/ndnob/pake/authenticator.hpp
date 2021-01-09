@@ -23,6 +23,12 @@ public:
 
     /** @brief Authenticator private key. */
     const ndnph::EcPrivateKey& pvt;
+
+    /** @brief Network credential to be passed to the device. */
+    ndnph::tlv::Value nc;
+
+    /** @brief Assigned device name. */
+    ndnph::Name deviceName;
   };
 
   explicit Authenticator(const Options& opts);
@@ -59,13 +65,14 @@ private:
 
   bool processData(ndnph::Data data) final;
 
-  bool sendPakeRequest();
+  void sendPakeRequest();
 
   bool handlePakeResponse(ndnph::Data data);
 
   bool processInterest(ndnph::Interest interest) final;
 
 private:
+  class GotoState;
   class PakeRequest;
   class PakeResponse;
   class ConfirmRequest;
@@ -73,14 +80,17 @@ private:
   ndnph::Data m_caProfile;
   ndnph::Data m_cert;
   const ndnph::EcPrivateKey& m_pvt;
+  ndnph::tlv::Value m_nc;
+  ndnph::Name m_deviceName;
 
   State m_state = State::Idle;
+  ndnph::port::Clock::Time m_deadline;
+  uint64_t m_lastPitToken = 0;
 
   ndnph::DynamicRegion m_region;
   ndnph::Component m_session;
   std::unique_ptr<spake2::Spake2> m_spake2;
-  ndnph::port::Clock::Time m_deadline;
-  uint64_t m_lastPitToken = 0;
+  std::unique_ptr<AesGcm> m_aes;
 };
 
 } // namespace pake

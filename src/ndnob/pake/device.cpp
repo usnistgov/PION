@@ -6,6 +6,33 @@ namespace pake {
 static constexpr int REQUEST_DEADLINE = 2000;
 static constexpr int COMPLETE_DEADLINE = 6000;
 
+class Device::GotoState
+{
+public:
+  explicit GotoState(Device* device)
+    : m_device(device)
+  {}
+
+  bool operator()(State state, int deadline = REQUEST_DEADLINE)
+  {
+    m_device->m_state = state;
+    m_device->m_deadline = ndnph::port::Clock::add(ndnph::port::Clock::now(), deadline);
+    m_set = true;
+    return true;
+  }
+
+  ~GotoState()
+  {
+    if (!m_set) {
+      m_device->m_state = State::Failure;
+    }
+  }
+
+private:
+  Device* m_device;
+  bool m_set = false;
+};
+
 class Device::PakeRequest : public packet_struct::PakeRequest
 {
 public:
@@ -51,9 +78,10 @@ public:
 class Device::ConfirmRequest : public packet_struct::ConfirmRequest
 {
 public:
-  bool fromInterest(ndnph::Region&, const ndnph::Interest& interest)
+  std::pair<bool, Encrypted> fromInterest(const ndnph::Interest& interest)
   {
-    return ndnph::EvDecoder::decodeValue(
+    Encrypted encrypted;
+    bool ok = ndnph::EvDecoder::decodeValue(
       interest.getAppParameters().makeDecoder(),
       ndnph::EvDecoder::def<TT::Spake2Fkca>([this](const ndnph::Decoder::Tlv& d) {
         if (d.length == sizeof(spake2Fkca)) {
@@ -61,7 +89,30 @@ public:
           return true;
         }
         return false;
-      }));
+      }),
+      ndnph::EvDecoder::def<TT::InitializationVector>(&encrypted),
+      ndnph::EvDecoder::def<TT::AuthenticationTag>(&encrypted),
+      ndnph::EvDecoder::def<TT::EncryptedPayload>(&encrypted));
+    return std::make_pair(ok, encrypted);
+  }
+
+  bool decrypt(ndnph::Region& region, const Encrypted& encrypted, const ndnph::Component& session,
+               AesGcm& aes)
+  {
+    ndnph::tlv::Value inner = aes.decrypt(region, encrypted, session.value(), session.length());
+    return !!inner &&
+           ndnph::EvDecoder::decodeValue(
+             inner.makeDecoder(), ndnph::EvDecoder::def<TT::Nc>(&nc),
+             ndnph::EvDecoder::def<TT::CaProfileName>(
+               [this](const ndnph::Decoder::Tlv& d) { return d.vd().decode(caProfileName); }),
+             ndnph::EvDecoder::def<TT::AuthenticatorCertName>([this](const ndnph::Decoder::Tlv& d) {
+               return d.vd().decode(authenticatorCertName);
+             }),
+             ndnph::EvDecoder::def<TT::DeviceName>(
+               [this](const ndnph::Decoder::Tlv& d) { return d.vd().decode(deviceName); }),
+             ndnph::EvDecoder::defNni<TT::TimestampNameComponent>(&timestamp)) &&
+           caProfileName[-1].is<ndnph::convention::ImplicitDigest>() &&
+           authenticatorCertName[-1].is<ndnph::convention::ImplicitDigest>();
   }
 };
 
@@ -86,7 +137,9 @@ Device::begin(ndnph::tlv::Value password)
 
   mbed::Object<mbedtls_entropy_context, mbedtls_entropy_init, mbedtls_entropy_free> entropy;
   m_spake2.reset(new spake2::Spake2(spake2::Role::Bob, entropy));
-  if (!m_spake2->start(password.begin(), password.size())) {
+  if (!m_spake2->start(password.begin(), password.size()) ||
+      !ndnph::port::RandomSource::generate(reinterpret_cast<uint8_t*>(&m_lastPitToken),
+                                           sizeof(m_lastPitToken))) {
     return false;
   }
 
@@ -97,18 +150,27 @@ Device::begin(ndnph::tlv::Value password)
 void
 Device::loop()
 {
-  ndnph::StaticRegion<2048> region;
+  State timeoutState = State::Failure;
   switch (m_state) {
+    case State::FetchCaProfile: {
+      sendFetchInterest(m_caProfileName, State::WaitCaProfile);
+      break;
+    }
+    case State::FetchAuthenticatorCert: {
+      sendFetchInterest(m_authenticatorCertName, State::WaitAuthenticatorCert);
+      break;
+    }
+    case State::SendConfirmResponse: {
+      sendConfirmResponse();
+      break;
+    }
+    case State::PendingCompletion:
+      timeoutState = State::Success;
+      // fallthrough
     case State::WaitCaProfile:
     case State::WaitAuthenticatorCert: {
       if (ndnph::port::Clock::isBefore(m_deadline, ndnph::port::Clock::now())) {
-        m_state = State::Failure;
-      }
-      break;
-    }
-    case State::WaitCompletion: {
-      if (ndnph::port::Clock::isBefore(m_deadline, ndnph::port::Clock::now())) {
-        m_state = State::Success;
+        m_state = timeoutState;
       }
       break;
     }
@@ -128,26 +190,13 @@ Device::processInterest(ndnph::Interest interest)
 #endif
   switch (m_state) {
     case State::WaitPakeRequest: {
-      if (handlePakeRequest(interest)) {
-        m_state = State::WaitConfirmRequest;
-        return true;
-      }
-      break;
+      return handlePakeRequest(interest);
     }
     case State::WaitConfirmRequest: {
-      if (handleConfirmRequest(interest)) {
-        m_state = State::WaitCredentialRequest;
-        return true;
-      }
-      break;
+      return handleConfirmRequest(interest);
     }
     case State::WaitCredentialRequest: {
-      if (handleCredentialRequest(interest)) {
-        m_state = State::WaitCompletion;
-        m_deadline = ndnph::port::Clock::add(ndnph::port::Clock::now(), COMPLETE_DEADLINE);
-        return true;
-      }
-      break;
+      return handleCredentialRequest(interest);
     }
     default:
       break;
@@ -160,7 +209,7 @@ Device::checkInterestVerb(ndnph::Interest interest, const ndnph::Component& expe
 {
   const auto& name = interest.getName();
   if (name.size() != 5 || !getLocalhopOnboardingPrefix().isPrefixOf(name) ||
-      name[3] != expectedVerb) {
+      name[3] != expectedVerb || !interest.checkDigest()) {
     return false;
   }
   if (!m_sessionPrefix) {
@@ -172,33 +221,125 @@ Device::checkInterestVerb(ndnph::Interest interest, const ndnph::Component& expe
 bool
 Device::handlePakeRequest(ndnph::Interest interest)
 {
-  ndnph::StaticRegion<4096> region;
+  if (!checkInterestVerb(interest, getPakeComponent())) {
+    return false;
+  }
+
+  ndnph::StaticRegion<2048> region;
+  GotoState gotoState(this);
   PakeRequest req;
   PakeResponse res;
-  return checkInterestVerb(interest, getPakeComponent()) && req.fromInterest(region, interest) &&
-         m_spake2->generateFirstMessage(res.spake2S, sizeof(res.spake2S)) &&
-         m_spake2->processFirstMessage(req.spake2T, sizeof(req.spake2T)) &&
-         m_spake2->generateSecondMessage(res.spake2Fkcb, sizeof(res.spake2Fkcb)) &&
-         reply(res.toData(region, interest));
+  req.fromInterest(region, interest) &&
+    m_spake2->generateFirstMessage(res.spake2S, sizeof(res.spake2S)) &&
+    m_spake2->processFirstMessage(req.spake2T, sizeof(req.spake2T)) &&
+    m_spake2->generateSecondMessage(res.spake2Fkcb, sizeof(res.spake2Fkcb)) &&
+    reply(res.toData(region, interest)) && gotoState(State::WaitConfirmRequest);
+  return true;
 }
 
 bool
 Device::handleConfirmRequest(ndnph::Interest interest)
 {
-  ndnph::StaticRegion<2048> region;
+  if (!checkInterestVerb(interest, getConfirmComponent())) {
+    return false;
+  }
+
+  GotoState gotoState(this);
   ConfirmRequest req;
-  return checkInterestVerb(interest, getConfirmComponent()) && req.fromInterest(region, interest) &&
-         m_spake2->processSecondMessage(req.spake2Fkca, sizeof(req.spake2Fkca));
+  bool ok = false;
+  Encrypted encrypted;
+  std::tie(ok, encrypted) = req.fromInterest(interest);
+  ok = ok && m_spake2->processSecondMessage(req.spake2Fkca, sizeof(req.spake2Fkca));
+  if (!ok) {
+    return true;
+  }
+
+  m_aes.reset(new AesGcm());
+  ok = m_aes->import(m_spake2->getSharedKey()) &&
+       req.decrypt(m_region, encrypted, m_sessionPrefix[-1], *m_aes);
+  if (!ok) {
+    return true;
+  }
+  gotoState(State::FetchCaProfile);
+
+  // copy to session region because these are needed later
+  m_confirmRequestInterestName = interest.getName().clone(m_region);
+  m_confirmRequestPacketInfo = *getCurrentPacketInfo();
+  // the names are already in session region
+  m_caProfileName = req.caProfileName;
+  m_authenticatorCertName = req.authenticatorCertName;
+  m_deviceName = req.deviceName;
+  return true;
 }
+
+void
+Device::sendConfirmResponse()
+{
+  ndnph::StaticRegion<2048> region;
+  GotoState gotoState(this);
+
+  auto data = region.create<ndnph::Data>();
+  if (!data) {
+    return;
+  }
+  data.setName(m_confirmRequestInterestName);
+  send(data.sign(ndnph::NullKey::get()), m_confirmRequestPacketInfo) &&
+    gotoState(State::WaitCredentialRequest);
+}
+
 bool
 Device::handleCredentialRequest(ndnph::Interest interest)
 {
-  ndnph::StaticRegion<2048> region;
-  return checkInterestVerb(interest, getCredentialComponent());
+  GotoState gotoState(this);
+  bool ok = checkInterestVerb(interest, getCredentialComponent());
+  if (!ok) {
+    return false;
+  }
+
+  gotoState(State::PendingCompletion, COMPLETE_DEADLINE);
+  return true;
 }
 
-bool Device::processData(ndnph::Data)
+void
+Device::sendFetchInterest(const ndnph::Name& name, State nextState)
 {
+  ndnph::StaticRegion<2048> region;
+  GotoState gotoState(this);
+  auto interest = region.create<ndnph::Interest>();
+  if (!interest) {
+    return;
+  }
+  interest.setName(name);
+  send(interest, WithEndpointId(m_confirmRequestPacketInfo.endpointId),
+       WithPitToken(++m_lastPitToken)) &&
+    gotoState(nextState);
+}
+
+bool
+Device::processData(ndnph::Data data)
+{
+  if (getCurrentPacketInfo()->pitToken != m_lastPitToken) {
+    return false;
+  }
+  ndnph::StaticRegion<2048> region;
+  switch (m_state) {
+    case State::WaitCaProfile: {
+      if (data.getFullName(region) == m_caProfileName) {
+        // TODO decode and store CA profile
+        m_state = State::FetchAuthenticatorCert;
+      }
+      break;
+    }
+    case State::WaitAuthenticatorCert: {
+      if (data.getFullName(region) == m_authenticatorCertName) {
+        // TODO decode and store authenticator certificate
+        m_state = State::SendConfirmResponse;
+      }
+      break;
+    }
+    default:
+      break;
+  }
   return false;
 }
 
