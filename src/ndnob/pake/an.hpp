@@ -64,6 +64,28 @@ getCredentialComponent()
   return comp;
 }
 
+/** @brief Return '32=onboarding-authenticator' component. */
+inline ndnph::Component
+getAuthenticatorComponent()
+{
+  static const uint8_t tlv[]{ 0x20, 0x18, 0x6f, 0x6e, 0x62, 0x6f, 0x61, 0x72, 0x64,
+                              0x69, 0x6e, 0x67, 0x2d, 0x61, 0x75, 0x74, 0x68, 0x65,
+                              0x6e, 0x74, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72 };
+  static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
+  return comp;
+}
+
+/** @brief Return '32=onboarding-authenticated' component. */
+inline ndnph::Component
+getAuthenticatedComponent()
+{
+  static const uint8_t tlv[]{ 0x20, 0x18, 0x6f, 0x6e, 0x62, 0x6f, 0x61, 0x72, 0x64,
+                              0x69, 0x6e, 0x67, 0x2d, 0x61, 0x75, 0x74, 0x68, 0x65,
+                              0x6e, 0x74, 0x69, 0x63, 0x61, 0x74, 0x65, 0x64 };
+  static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
+  return comp;
+}
+
 } // namespace pake
 } // namespace ndnob
 

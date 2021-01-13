@@ -3,7 +3,7 @@
 namespace ndnob {
 namespace pake {
 
-static constexpr int REQUEST_DEADLINE = 2000;
+static constexpr int REQUEST_DEADLINE = 4000;
 
 class Authenticator::GotoState
 {
@@ -118,6 +118,36 @@ public:
   }
 };
 
+class Authenticator::ConfirmResponse
+{
+public:
+  bool fromData(ndnph::Region& region, const ndnph::Data& data, const ndnph::Component& session,
+                AesGcm& aes)
+  {
+    Encrypted encrypted;
+    bool ok = ndnph::EvDecoder::decodeValue(
+      data.getContent().makeDecoder(), ndnph::EvDecoder::def<TT::InitializationVector>(&encrypted),
+      ndnph::EvDecoder::def<TT::AuthenticationTag>(&encrypted),
+      ndnph::EvDecoder::def<TT::EncryptedPayload>(&encrypted));
+    if (!ok) {
+      return false;
+    }
+
+    ndnph::tlv::Value inner = aes.decrypt(region, encrypted, session.value(), session.length());
+    return !!inner && ndnph::EvDecoder::decodeValue(
+                        inner.makeDecoder(),
+                        ndnph::EvDecoder::def<TT::TReq>([&](const ndnph::Decoder::Tlv& d) {
+                          tempCertReq = region.create<ndnph::Data>();
+                          return !!tempCertReq && d.vd().decode(tempCertReq) &&
+                                 tPub.import(region, tempCertReq);
+                        }));
+  }
+
+public:
+  ndnph::Data tempCertReq;
+  ndnph::EcPublicKey tPub;
+};
+
 Authenticator::Authenticator(const Options& opts)
   : PacketHandler(opts.face, 192)
   , m_caProfile(opts.caProfile)
@@ -194,7 +224,7 @@ Authenticator::processData(ndnph::Data data)
       return handlePakeResponse(data);
     }
     case State::WaitConfirmResponse: {
-      break;
+      return handleConfirmResponse(data);
     }
     case State::WaitCredentialResponse: {
       break;
@@ -247,6 +277,22 @@ Authenticator::handlePakeResponse(ndnph::Data data)
     gotoState(State::WaitConfirmResponse);
   }
   return true;
+}
+
+bool
+Authenticator::handleConfirmResponse(ndnph::Data data)
+{
+  ndnph::StaticRegion<2048> region;
+  ConfirmResponse res;
+  if (!res.fromData(region, data, m_session, *m_aes)) {
+    return false;
+  }
+#ifndef ARDUINO
+  std::cerr << "tempCertReq.name=" << res.tempCertReq.getName() << std::endl;
+#endif
+
+  GotoState gotoState(this);
+  return gotoState(State::SendCredentialRequest);
 }
 
 bool

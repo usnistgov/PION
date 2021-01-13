@@ -54,12 +54,6 @@ public:
     return m_state;
   }
 
-  // XXX temporary
-  const std::array<uint8_t, 16>& getKey() const
-  {
-    return m_spake2->getSharedKey();
-  }
-
 private:
   void loop() final;
 
@@ -69,6 +63,8 @@ private:
 
   bool handlePakeResponse(ndnph::Data data);
 
+  bool handleConfirmResponse(ndnph::Data data);
+
   bool processInterest(ndnph::Interest interest) final;
 
 private:
@@ -76,6 +72,7 @@ private:
   class PakeRequest;
   class PakeResponse;
   class ConfirmRequest;
+  class ConfirmResponse;
 
   ndnph::Data m_caProfile;
   ndnph::Data m_cert;

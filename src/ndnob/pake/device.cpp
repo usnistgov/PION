@@ -1,4 +1,5 @@
 #include "device.hpp"
+#include <sys/time.h>
 
 namespace ndnob {
 namespace pake {
@@ -116,6 +117,26 @@ public:
   }
 };
 
+template<typename Cert>
+static ndnph::Data::Signed
+makeConfirmResponseData(ndnph::Region& region, const ndnph::Name& confirmRequestName,
+                        const ndnph::Component& session, AesGcm& aes, const Cert& tReq)
+{
+  ndnph::Encoder inner(region);
+  inner.prependTlv(TT::TReq, tReq);
+  inner.trim();
+  auto encrypted =
+    aes.encrypt<Encrypted>(region, ndnph::tlv::Value(inner), session.value(), session.length());
+
+  ndnph::Data data = region.create<ndnph::Data>();
+  if (!tReq || !inner || !data || !encrypted) {
+    return ndnph::Data::Signed();
+  }
+  data.setName(confirmRequestName);
+  data.setContent(encrypted);
+  return data.sign(ndnph::NullKey::get());
+}
+
 Device::Device(const Options& opts)
   : PacketHandler(opts.face, 192)
   , m_region(4096)
@@ -158,10 +179,6 @@ Device::loop()
     }
     case State::FetchAuthenticatorCert: {
       sendFetchInterest(m_authenticatorCertName, State::WaitAuthenticatorCert);
-      break;
-    }
-    case State::SendConfirmResponse: {
-      sendConfirmResponse();
       break;
     }
     case State::PendingCompletion:
@@ -260,7 +277,13 @@ Device::handleConfirmRequest(ndnph::Interest interest)
   if (!ok) {
     return true;
   }
-  gotoState(State::FetchCaProfile);
+
+#ifdef ARDUINO
+  timeval tv = {
+    .tv_sec = static_cast<long>(req.timestamp / ndnph::convention::TimeValue::Microseconds),
+  };
+  settimeofday(&tv, nullptr);
+#endif
 
   // copy to session region because these are needed later
   m_confirmRequestInterestName = interest.getName().clone(m_region);
@@ -269,22 +292,8 @@ Device::handleConfirmRequest(ndnph::Interest interest)
   m_caProfileName = req.caProfileName;
   m_authenticatorCertName = req.authenticatorCertName;
   m_deviceName = req.deviceName;
-  return true;
-}
 
-void
-Device::sendConfirmResponse()
-{
-  ndnph::StaticRegion<2048> region;
-  GotoState gotoState(this);
-
-  auto data = region.create<ndnph::Data>();
-  if (!data) {
-    return;
-  }
-  data.setName(m_confirmRequestInterestName);
-  send(data.sign(ndnph::NullKey::get()), m_confirmRequestPacketInfo) &&
-    gotoState(State::WaitCredentialRequest);
+  return gotoState(State::FetchCaProfile);
 }
 
 bool
@@ -296,8 +305,7 @@ Device::handleCredentialRequest(ndnph::Interest interest)
     return false;
   }
 
-  gotoState(State::PendingCompletion, COMPLETE_DEADLINE);
-  return true;
+  return gotoState(State::PendingCompletion, COMPLETE_DEADLINE);
 }
 
 void
@@ -321,26 +329,61 @@ Device::processData(ndnph::Data data)
   if (getCurrentPacketInfo()->pitToken != m_lastPitToken) {
     return false;
   }
-  ndnph::StaticRegion<2048> region;
   switch (m_state) {
     case State::WaitCaProfile: {
-      if (data.getFullName(region) == m_caProfileName) {
-        // TODO decode and store CA profile
-        m_state = State::FetchAuthenticatorCert;
-      }
-      break;
+      return handleCaProfile(data);
     }
     case State::WaitAuthenticatorCert: {
-      if (data.getFullName(region) == m_authenticatorCertName) {
-        // TODO decode and store authenticator certificate
-        m_state = State::SendConfirmResponse;
-      }
-      break;
+      return handleAuthenticatorCert(data);
     }
     default:
       break;
   }
   return false;
+}
+
+bool
+Device::handleCaProfile(ndnph::Data data)
+{
+  ndnph::StaticRegion<2048> region;
+  if (data.getFullName(region) != m_caProfileName || !m_caProfile.fromData(m_region, data)) {
+    return false;
+  }
+  region.reset();
+
+  GotoState gotoState(this);
+  // TODO check CA certificate is unexpired
+
+  gotoState(State::FetchAuthenticatorCert);
+  return true;
+}
+
+bool
+Device::handleAuthenticatorCert(ndnph::Data data)
+{
+  ndnph::StaticRegion<2048> region;
+  if (data.getFullName(region) != m_authenticatorCertName) {
+    return false;
+  }
+  region.reset();
+
+  GotoState gotoState(this);
+  if (!data.verify(m_caProfile.pub)) {
+    return false;
+  }
+  // TODO check authenticator certificate is unexpired
+
+  ndnph::Name tSubject = computeTempSubjectName(region, data.getName(), m_deviceName);
+  if (!tSubject || !ndnph::ec::generate(region, tSubject, m_tPvt, m_tPub)) {
+    return true;
+  }
+
+  auto tCert = m_tPub.selfSign(region, ndnph::ValidityPeriod::getMax(), m_tPvt);
+  send(makeConfirmResponseData(region, m_confirmRequestInterestName, m_sessionPrefix[-1], *m_aes,
+                               tCert),
+       m_confirmRequestPacketInfo) &&
+    gotoState(State::WaitCredentialRequest);
+  return true;
 }
 
 } // namespace pake

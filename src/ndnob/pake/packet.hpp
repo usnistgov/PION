@@ -121,6 +121,31 @@ using Encrypted =
   ndnph::EncryptedMessage<TT::InitializationVector, AesGcm::IvLen::value, TT::AuthenticationTag,
                           AesGcm::TagLen::value, TT::EncryptedPayload>;
 
+inline ndnph::Name
+computeTempSubjectName(ndnph::Region& region, ndnph::Name authenticatorCertName,
+                       ndnph::Name deviceName)
+{
+  ndnph::Name authenticatorSubjectName =
+    ndnph::certificate::toSubjectName(region, authenticatorCertName, false);
+  ndnph::Name head;
+  for (size_t i = 0; i < authenticatorSubjectName.size(); ++i) {
+    if (authenticatorSubjectName[i] == getAuthenticatorComponent()) {
+      head = authenticatorSubjectName.getPrefix(i);
+      break;
+    }
+  }
+  if (!head) {
+    return ndnph::Name();
+  }
+
+  ndnph::Name tail = deviceName.slice(head.size());
+  ndnph::Encoder encoder(region);
+  encoder.prepend(ndnph::tlv::Value(head.value(), head.length()), getAuthenticatedComponent(),
+                  ndnph::tlv::Value(tail.value(), tail.length()));
+  encoder.trim();
+  return ndnph::Name(encoder.begin(), encoder.size());
+}
+
 } // namespace pake
 } // namespace ndnob
 
