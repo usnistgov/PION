@@ -97,10 +97,9 @@ public:
     return std::make_pair(ok, encrypted);
   }
 
-  bool decrypt(ndnph::Region& region, const Encrypted& encrypted, const ndnph::Component& session,
-               AesGcm& aes)
+  bool decrypt(ndnph::Region& region, const Encrypted& encrypted, EncryptSession& session)
   {
-    ndnph::tlv::Value inner = aes.decrypt(region, encrypted, session.value(), session.length());
+    auto inner = session.decrypt(region, encrypted);
     return !!inner &&
            ndnph::EvDecoder::decodeValue(
              inner.makeDecoder(), ndnph::EvDecoder::def<TT::Nc>(&nc),
@@ -120,16 +119,13 @@ public:
 template<typename Cert>
 static ndnph::Data::Signed
 makeConfirmResponseData(ndnph::Region& region, const ndnph::Name& confirmRequestName,
-                        const ndnph::Component& session, AesGcm& aes, const Cert& tReq)
+                        EncryptSession& session, const Cert& tReq)
 {
-  ndnph::Encoder inner(region);
-  inner.prependTlv(TT::TReq, tReq);
-  inner.trim();
   auto encrypted =
-    aes.encrypt<Encrypted>(region, ndnph::tlv::Value(inner), session.value(), session.length());
+    session.encrypt(region, [&](ndnph::Encoder& encoder) { encoder.prependTlv(TT::TReq, tReq); });
 
   ndnph::Data data = region.create<ndnph::Data>();
-  if (!tReq || !inner || !data || !encrypted) {
+  if (!tReq || !encrypted || !data) {
     return ndnph::Data::Signed();
   }
   data.setName(confirmRequestName);
@@ -145,9 +141,9 @@ Device::Device(const Options& opts)
 void
 Device::end()
 {
+  m_session.end();
   m_spake2.reset();
   m_state = State::Idle;
-  m_sessionPrefix = ndnph::Name();
   m_region.reset();
 }
 
@@ -229,10 +225,7 @@ Device::checkInterestVerb(ndnph::Interest interest, const ndnph::Component& expe
       name[3] != expectedVerb || !interest.checkDigest()) {
     return false;
   }
-  if (!m_sessionPrefix) {
-    m_sessionPrefix = name.getPrefix(3).clone(m_region);
-  }
-  return m_sessionPrefix.isPrefixOf(name);
+  return m_session.assign(m_region, interest.getName());
 }
 
 bool
@@ -271,9 +264,7 @@ Device::handleConfirmRequest(ndnph::Interest interest)
     return true;
   }
 
-  m_aes.reset(new AesGcm());
-  ok = m_aes->import(m_spake2->getSharedKey()) &&
-       req.decrypt(m_region, encrypted, m_sessionPrefix[-1], *m_aes);
+  ok = m_session.importKey(m_spake2->getSharedKey()) && req.decrypt(m_region, encrypted, m_session);
   if (!ok) {
     return true;
   }
@@ -379,8 +370,7 @@ Device::handleAuthenticatorCert(ndnph::Data data)
   }
 
   auto tCert = m_tPub.selfSign(region, ndnph::ValidityPeriod::getMax(), m_tPvt);
-  send(makeConfirmResponseData(region, m_confirmRequestInterestName, m_sessionPrefix[-1], *m_aes,
-                               tCert),
+  send(makeConfirmResponseData(region, m_confirmRequestInterestName, m_session, tCert),
        m_confirmRequestPacketInfo) &&
     gotoState(State::WaitCredentialRequest);
   return true;

@@ -80,9 +80,8 @@ private:
   uint64_t m_lastPitToken = 0;
 
   ndnph::DynamicRegion m_region;
-  ndnph::Name m_sessionPrefix;
+  EncryptSession m_session;
   std::unique_ptr<spake2::Spake2> m_spake2;
-  std::unique_ptr<AesGcm> m_aes;
   ndnph::EcPrivateKey m_tPvt;
   ndnph::EcPublicKey m_tPub;
 

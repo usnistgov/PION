@@ -7,6 +7,11 @@ namespace ndnob {
 namespace pake {
 namespace packet_struct {
 
+/**
+ * @brief Print a field in hexadecimal format.
+ * @pre @c p is a struct in context.
+ * @param field field name.
+ */
 #define NDNOB_PACKET_PRINT_FIELD_HEX(field)                                                        \
   do {                                                                                             \
     os << #field "=";                                                                              \
@@ -74,13 +79,13 @@ struct ConfirmRequest
 
 struct ConfirmResponse
 {
-  ndnph::tlv::Value tempCertReq;
+  ndnph::Data tempCertReq;
 
 #ifdef NDNPH_PRINT_OSTREAM
   friend std::ostream& operator<<(std::ostream& os, const ConfirmResponse& p)
   {
     os << "ConfirmResponse(";
-    os << "tempCertReq.size=" << p.tempCertReq.size();
+    os << "tempCertReq=" << p.tempCertReq.getName();
     return os << ")";
   }
 #endif // NDNPH_PRINT_OSTREAM
@@ -121,30 +126,60 @@ using Encrypted =
   ndnph::EncryptedMessage<TT::InitializationVector, AesGcm::IvLen::value, TT::AuthenticationTag,
                           AesGcm::TagLen::value, TT::EncryptedPayload>;
 
-inline ndnph::Name
-computeTempSubjectName(ndnph::Region& region, ndnph::Name authenticatorCertName,
-                       ndnph::Name deviceName)
+/** @brief Session ID and encryption context. */
+class EncryptSession
 {
-  ndnph::Name authenticatorSubjectName =
-    ndnph::certificate::toSubjectName(region, authenticatorCertName, false);
-  ndnph::Name head;
-  for (size_t i = 0; i < authenticatorSubjectName.size(); ++i) {
-    if (authenticatorSubjectName[i] == getAuthenticatorComponent()) {
-      head = authenticatorSubjectName.getPrefix(i);
-      break;
-    }
-  }
-  if (!head) {
-    return ndnph::Name();
+public:
+  /** @brief Clear state. */
+  void end();
+
+  /**
+   * @brief Create new session ID.
+   * @return whether success.
+   */
+  bool begin(ndnph::Region& region);
+
+  /**
+   * @brief Assign session ID unless it's already assigned.
+   * @return whether current packet belongs to the session.
+   */
+  bool assign(ndnph::Region& region, ndnph::Name name);
+
+  /**
+   * @brief Import AES-GCM key.
+   * @return whether success.
+   */
+  bool importKey(const AesGcm::Key& key)
+  {
+    aes.reset(new AesGcm());
+    return aes->import(key);
   }
 
-  ndnph::Name tail = deviceName.slice(head.size());
-  ndnph::Encoder encoder(region);
-  encoder.prepend(ndnph::tlv::Value(head.value(), head.length()), getAuthenticatedComponent(),
-                  ndnph::tlv::Value(tail.value(), tail.length()));
-  encoder.trim();
-  return ndnph::Name(encoder.begin(), encoder.size());
-}
+  /**
+   * @brief Encrypt a message.
+   * @param region where to allocate memory.
+   * @param arg arguments to @c Encoder::prepend function.
+   * @return encrypted-message structure.
+   */
+  template<typename... Arg>
+  ndnph::tlv::Value encrypt(ndnph::Region& region, const Arg&... arg)
+  {
+    ndnph::Encoder inner(region);
+    inner.prepend(arg...);
+    inner.trim();
+    return aes->encrypt<Encrypted>(region, ndnph::tlv::Value(inner), ss.value(), ss.length());
+  }
+
+  ndnph::tlv::Value decrypt(ndnph::Region& region, const Encrypted& encrypted);
+
+public:
+  ndnph::Component ss;
+  std::unique_ptr<AesGcm> aes;
+};
+
+ndnph::Name
+computeTempSubjectName(ndnph::Region& region, ndnph::Name authenticatorCertName,
+                       ndnph::Name deviceName);
 
 } // namespace pake
 } // namespace ndnob

@@ -35,15 +35,14 @@ private:
 class Authenticator::PakeRequest : public packet_struct::PakeRequest
 {
 public:
-  ndnph::Interest::Parameterized toInterest(ndnph::Region& region,
-                                            const ndnph::Component& session) const
+  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, EncryptSession& session) const
   {
     ndnph::Encoder encoder(region);
     encoder.prependTlv(TT::Spake2T, ndnph::tlv::Value(spake2T, sizeof(spake2T)));
     encoder.trim();
 
     ndnph::Name name =
-      getLocalhopOnboardingPrefix().append(region, { session, getPakeComponent() });
+      getLocalhopOnboardingPrefix().append(region, { session.ss, getPakeComponent() });
     ndnph::Interest interest = region.create<ndnph::Interest>();
     if (!encoder || !name || !interest) {
       return ndnph::Interest::Parameterized();
@@ -80,12 +79,10 @@ public:
 class Authenticator::ConfirmRequest : public packet_struct::ConfirmRequest
 {
 public:
-  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, const ndnph::Component& session,
-                                            AesGcm& aes) const
+  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, EncryptSession& session) const
   {
-    ndnph::Encoder inner(region);
-    inner.prepend(
-      [this](ndnph::Encoder& encoder) { encoder.prependTlv(TT::Nc, nc); },
+    auto encrypted = session.encrypt(
+      region, [this](ndnph::Encoder& encoder) { encoder.prependTlv(TT::Nc, nc); },
       [this](ndnph::Encoder& encoder) { encoder.prependTlv(TT::CaProfileName, caProfileName); },
       [this](ndnph::Encoder& encoder) {
         encoder.prependTlv(TT::AuthenticatorCertName, authenticatorCertName);
@@ -95,9 +92,6 @@ public:
         encoder.prepend(
           ndnph::convention::Timestamp::create(region, ndnph::convention::TimeValue()));
       });
-    inner.trim();
-    auto encrypted =
-      aes.encrypt<Encrypted>(region, ndnph::tlv::Value(inner), session.value(), session.length());
 
     ndnph::Encoder outer(region);
     outer.prepend(
@@ -108,9 +102,9 @@ public:
     outer.trim();
 
     ndnph::Name name =
-      getLocalhopOnboardingPrefix().append(region, { session, getConfirmComponent() });
+      getLocalhopOnboardingPrefix().append(region, { session.ss, getConfirmComponent() });
     ndnph::Interest interest = region.create<ndnph::Interest>();
-    if (!inner || !encrypted || !outer || !name || !interest) {
+    if (!encrypted || !outer || !name || !interest) {
       return ndnph::Interest::Parameterized();
     }
     interest.setName(name);
@@ -118,11 +112,10 @@ public:
   }
 };
 
-class Authenticator::ConfirmResponse
+class Authenticator::ConfirmResponse : public packet_struct::ConfirmResponse
 {
 public:
-  bool fromData(ndnph::Region& region, const ndnph::Data& data, const ndnph::Component& session,
-                AesGcm& aes)
+  bool fromData(ndnph::Region& region, const ndnph::Data& data, EncryptSession& session)
   {
     Encrypted encrypted;
     bool ok = ndnph::EvDecoder::decodeValue(
@@ -133,7 +126,7 @@ public:
       return false;
     }
 
-    ndnph::tlv::Value inner = aes.decrypt(region, encrypted, session.value(), session.length());
+    auto inner = session.decrypt(region, encrypted);
     return !!inner && ndnph::EvDecoder::decodeValue(
                         inner.makeDecoder(),
                         ndnph::EvDecoder::def<TT::TReq>([&](const ndnph::Decoder::Tlv& d) {
@@ -144,7 +137,6 @@ public:
   }
 
 public:
-  ndnph::Data tempCertReq;
   ndnph::EcPublicKey tPub;
 };
 
@@ -161,6 +153,7 @@ Authenticator::Authenticator(const Options& opts)
 void
 Authenticator::end()
 {
+  m_session.end();
   m_spake2.reset();
   m_state = State::Idle;
   m_region.reset();
@@ -171,13 +164,11 @@ Authenticator::begin(ndnph::tlv::Value password)
 {
   end();
 
-  uint8_t session[8];
-  if (!ndnph::port::RandomSource::generate(session, sizeof(session)) ||
+  if (!m_session.begin(m_region) ||
       !ndnph::port::RandomSource::generate(reinterpret_cast<uint8_t*>(&m_lastPitToken),
                                            sizeof(m_lastPitToken))) {
     return false;
   }
-  m_session = ndnph::Component(m_region, sizeof(session), session);
 
   mbed::Object<mbedtls_entropy_context, mbedtls_entropy_init, mbedtls_entropy_free> entropy;
   m_spake2.reset(new spake2::Spake2(spake2::Role::Alice, entropy));
@@ -257,11 +248,10 @@ Authenticator::handlePakeResponse(ndnph::Data data)
 
   GotoState gotoState(this);
   ConfirmRequest req;
-  m_aes.reset(new AesGcm());
   bool ok = m_spake2->processFirstMessage(res.spake2S, sizeof(res.spake2S)) &&
             m_spake2->generateSecondMessage(req.spake2Fkca, sizeof(req.spake2Fkca)) &&
             m_spake2->processSecondMessage(res.spake2Fkcb, sizeof(res.spake2Fkcb)) &&
-            m_aes->import(m_spake2->getSharedKey());
+            m_session.importKey(m_spake2->getSharedKey());
   m_spake2.reset();
   if (!ok) {
     return true;
@@ -272,7 +262,7 @@ Authenticator::handlePakeResponse(ndnph::Data data)
   req.authenticatorCertName = m_cert.getFullName(region);
   req.deviceName = m_deviceName;
   // req.timestamp is ignored; current timestamp will be used
-  ok = send(req.toInterest(region, m_session, *m_aes), WithPitToken(++m_lastPitToken));
+  ok = send(req.toInterest(region, m_session), WithPitToken(++m_lastPitToken));
   if (ok) {
     gotoState(State::WaitConfirmResponse);
   }
@@ -284,7 +274,7 @@ Authenticator::handleConfirmResponse(ndnph::Data data)
 {
   ndnph::StaticRegion<2048> region;
   ConfirmResponse res;
-  if (!res.fromData(region, data, m_session, *m_aes)) {
+  if (!res.fromData(region, data, m_session)) {
     return false;
   }
 #ifndef ARDUINO
