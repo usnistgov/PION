@@ -65,6 +65,8 @@ private:
 
   bool handleConfirmResponse(ndnph::Data data);
 
+  void sendCredentialRequest();
+
   bool processInterest(ndnph::Interest interest) final;
 
 private:
@@ -73,6 +75,7 @@ private:
   class PakeResponse;
   class ConfirmRequest;
   class ConfirmResponse;
+  class CredentialRequest;
 
   ndnph::Data m_caProfile;
   ndnph::Data m_cert;
@@ -87,6 +90,7 @@ private:
   ndnph::DynamicRegion m_region;
   EncryptSession m_session;
   std::unique_ptr<spake2::Spake2> m_spake2;
+  ndnph::Data m_issued;
 };
 
 } // namespace pake

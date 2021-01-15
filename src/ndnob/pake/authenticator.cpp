@@ -41,13 +41,11 @@ public:
     encoder.prependTlv(TT::Spake2T, ndnph::tlv::Value(spake2T, sizeof(spake2T)));
     encoder.trim();
 
-    ndnph::Name name =
-      getLocalhopOnboardingPrefix().append(region, { session.ss, getPakeComponent() });
     ndnph::Interest interest = region.create<ndnph::Interest>();
-    if (!encoder || !name || !interest) {
+    if (!encoder || !interest) {
       return ndnph::Interest::Parameterized();
     }
-    interest.setName(name);
+    interest.setName(session.makeName(region, getPakeComponent()));
     return interest.parameterize(ndnph::tlv::Value(encoder));
   }
 };
@@ -88,10 +86,7 @@ public:
         encoder.prependTlv(TT::AuthenticatorCertName, authenticatorCertName);
       },
       [this](ndnph::Encoder& encoder) { encoder.prependTlv(TT::DeviceName, deviceName); },
-      [&](ndnph::Encoder& encoder) {
-        encoder.prepend(
-          ndnph::convention::Timestamp::create(region, ndnph::convention::TimeValue()));
-      });
+      ndnph::convention::Timestamp::create(region, ndnph::convention::TimeValue()));
 
     ndnph::Encoder outer(region);
     outer.prepend(
@@ -101,13 +96,11 @@ public:
       encrypted);
     outer.trim();
 
-    ndnph::Name name =
-      getLocalhopOnboardingPrefix().append(region, { session.ss, getConfirmComponent() });
     ndnph::Interest interest = region.create<ndnph::Interest>();
-    if (!encrypted || !outer || !name || !interest) {
+    if (!encrypted || !outer || !interest) {
       return ndnph::Interest::Parameterized();
     }
-    interest.setName(name);
+    interest.setName(session.makeName(region, getConfirmComponent()));
     return interest.parameterize(ndnph::tlv::Value(outer));
   }
 };
@@ -138,6 +131,24 @@ public:
 
 public:
   ndnph::EcPublicKey tPub;
+};
+
+class Authenticator::CredentialRequest : public packet_struct::CredentialRequest
+{
+public:
+  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, EncryptSession& session) const
+  {
+    auto encrypted = session.encrypt(region, [this](ndnph::Encoder& encoder) {
+      encoder.prependTlv(TT::IssuedCertName, tempCertName);
+    });
+
+    ndnph::Interest interest = region.create<ndnph::Interest>();
+    if (!encrypted || !interest) {
+      return ndnph::Interest::Parameterized();
+    }
+    interest.setName(session.makeName(region, getCredentialComponent()));
+    return interest.parameterize(encrypted);
+  }
 };
 
 Authenticator::Authenticator(const Options& opts)
@@ -189,6 +200,7 @@ Authenticator::loop()
       break;
     }
     case State::SendCredentialRequest: {
+      sendCredentialRequest();
       break;
     }
     case State::WaitPakeResponse:
@@ -218,7 +230,8 @@ Authenticator::processData(ndnph::Data data)
       return handleConfirmResponse(data);
     }
     case State::WaitCredentialResponse: {
-      break;
+      m_state = State::Success;
+      return true;
     }
     default:
       break;
@@ -277,12 +290,37 @@ Authenticator::handleConfirmResponse(ndnph::Data data)
   if (!res.fromData(region, data, m_session)) {
     return false;
   }
-#ifndef ARDUINO
-  std::cerr << "tempCertReq.name=" << res.tempCertReq.getName() << std::endl;
-#endif
 
   GotoState gotoState(this);
-  return gotoState(State::SendCredentialRequest);
+  auto subjectName = computeTempSubjectName(region, m_cert.getName(), m_deviceName);
+  if (ndnph::certificate::toSubjectName(region, res.tempCertReq.getName()) != subjectName) {
+    return true;
+  }
+
+  time_t now = time(nullptr);
+  ndnph::ValidityPeriod validity(now, now + TempCertValidity::value);
+  ndnph::Encoder encoder(m_region);
+  encoder.prepend(res.tPub.buildCertificate(region, subjectName, validity, m_pvt));
+  if (!encoder) {
+    encoder.discard();
+    return true;
+  }
+  encoder.trim();
+
+  m_issued = m_region.create<ndnph::Data>();
+  return !!m_issued && ndnph::tlv::Value(encoder).makeDecoder().decode(m_issued) &&
+         gotoState(State::SendCredentialRequest);
+}
+
+void
+Authenticator::sendCredentialRequest()
+{
+  ndnph::StaticRegion<2048> region;
+  GotoState gotoState(this);
+  CredentialRequest req;
+  req.tempCertName = m_issued.getFullName(region);
+  !!req.tempCertName && send(req.toInterest(region, m_session), WithPitToken(++m_lastPitToken)) &&
+    gotoState(State::WaitCredentialResponse);
 }
 
 bool
@@ -293,6 +331,9 @@ Authenticator::processInterest(ndnph::Interest interest)
   }
   if (interest.match(m_cert)) {
     return reply(m_cert);
+  }
+  if (!!m_issued && interest.match(m_issued)) {
+    return reply(m_issued);
   }
   return false;
 }

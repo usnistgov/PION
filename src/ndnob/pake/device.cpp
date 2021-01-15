@@ -133,6 +133,30 @@ makeConfirmResponseData(ndnph::Region& region, const ndnph::Name& confirmRequest
   return data.sign(ndnph::NullKey::get());
 }
 
+class Device::CredentialRequest : public packet_struct::CredentialRequest
+{
+public:
+  bool fromInterest(ndnph::Region& region, const ndnph::Interest& interest, EncryptSession& session)
+  {
+    Encrypted encrypted;
+    bool ok =
+      ndnph::EvDecoder::decodeValue(interest.getAppParameters().makeDecoder(),
+                                    ndnph::EvDecoder::def<TT::InitializationVector>(&encrypted),
+                                    ndnph::EvDecoder::def<TT::AuthenticationTag>(&encrypted),
+                                    ndnph::EvDecoder::def<TT::EncryptedPayload>(&encrypted));
+    if (!ok) {
+      return false;
+    }
+
+    auto inner = session.decrypt(region, encrypted);
+    return !!inner && ndnph::EvDecoder::decodeValue(inner.makeDecoder(),
+                                                    ndnph::EvDecoder::def<TT::IssuedCertName>(
+                                                      [this](const ndnph::Decoder::Tlv& d) {
+                                                        return d.vd().decode(tempCertName);
+                                                      }));
+  }
+};
+
 Device::Device(const Options& opts)
   : PacketHandler(opts.face, 192)
   , m_region(4096)
@@ -177,6 +201,10 @@ Device::loop()
       sendFetchInterest(m_authenticatorCertName, State::WaitAuthenticatorCert);
       break;
     }
+    case State::FetchTempCert: {
+      sendFetchInterest(m_tempCertName, State::WaitTempCert);
+      break;
+    }
     case State::PendingCompletion:
       timeoutState = State::Success;
       // fallthrough
@@ -195,12 +223,6 @@ Device::loop()
 bool
 Device::processInterest(ndnph::Interest interest)
 {
-#ifdef ARDUINO
-  Serial.print(">I ");
-  Serial.print(interest.getName());
-  Serial.print(" ");
-  Serial.println(interest.getAppParameters().size());
-#endif
   switch (m_state) {
     case State::WaitPakeRequest: {
       return handlePakeRequest(interest);
@@ -221,11 +243,16 @@ bool
 Device::checkInterestVerb(ndnph::Interest interest, const ndnph::Component& expectedVerb)
 {
   const auto& name = interest.getName();
-  if (name.size() != 5 || !getLocalhopOnboardingPrefix().isPrefixOf(name) ||
-      name[3] != expectedVerb || !interest.checkDigest()) {
-    return false;
-  }
-  return m_session.assign(m_region, interest.getName());
+  return name.size() == getLocalhopOnboardingPrefix().size() + 3 &&
+         getLocalhopOnboardingPrefix().isPrefixOf(name) && name[-2] == expectedVerb &&
+         interest.checkDigest() && m_session.assign(m_region, interest.getName());
+}
+
+void
+Device::saveCurrentInterest(ndnph::Interest interest)
+{
+  m_lastInterestName = interest.getName().clone(m_region);
+  m_lastInterestPacketInfo = *getCurrentPacketInfo();
 }
 
 bool
@@ -254,6 +281,7 @@ Device::handleConfirmRequest(ndnph::Interest interest)
     return false;
   }
 
+  ndnph::StaticRegion<2048> region;
   GotoState gotoState(this);
   ConfirmRequest req;
   bool ok = false;
@@ -264,7 +292,7 @@ Device::handleConfirmRequest(ndnph::Interest interest)
     return true;
   }
 
-  ok = m_session.importKey(m_spake2->getSharedKey()) && req.decrypt(m_region, encrypted, m_session);
+  ok = m_session.importKey(m_spake2->getSharedKey()) && req.decrypt(region, encrypted, m_session);
   if (!ok) {
     return true;
   }
@@ -276,13 +304,10 @@ Device::handleConfirmRequest(ndnph::Interest interest)
   settimeofday(&tv, nullptr);
 #endif
 
-  // copy to session region because these are needed later
-  m_confirmRequestInterestName = interest.getName().clone(m_region);
-  m_confirmRequestPacketInfo = *getCurrentPacketInfo();
-  // the names are already in session region
-  m_caProfileName = req.caProfileName;
-  m_authenticatorCertName = req.authenticatorCertName;
-  m_deviceName = req.deviceName;
+  saveCurrentInterest(interest);
+  m_caProfileName = req.caProfileName.clone(m_region);
+  m_authenticatorCertName = req.authenticatorCertName.clone(m_region);
+  m_deviceName = req.deviceName.clone(m_region);
 
   return gotoState(State::FetchCaProfile);
 }
@@ -290,13 +315,20 @@ Device::handleConfirmRequest(ndnph::Interest interest)
 bool
 Device::handleCredentialRequest(ndnph::Interest interest)
 {
-  GotoState gotoState(this);
-  bool ok = checkInterestVerb(interest, getCredentialComponent());
-  if (!ok) {
+  if (!checkInterestVerb(interest, getCredentialComponent())) {
     return false;
   }
 
-  return gotoState(State::PendingCompletion, COMPLETE_DEADLINE);
+  ndnph::StaticRegion<2048> region;
+  GotoState gotoState(this);
+  CredentialRequest req;
+  if (!req.fromInterest(region, interest, m_session)) {
+    return true;
+  }
+
+  saveCurrentInterest(interest);
+  m_tempCertName = req.tempCertName.clone(m_region);
+  return gotoState(State::FetchTempCert);
 }
 
 void
@@ -309,7 +341,7 @@ Device::sendFetchInterest(const ndnph::Name& name, State nextState)
     return;
   }
   interest.setName(name);
-  send(interest, WithEndpointId(m_confirmRequestPacketInfo.endpointId),
+  send(interest, WithEndpointId(m_lastInterestPacketInfo.endpointId),
        WithPitToken(++m_lastPitToken)) &&
     gotoState(nextState);
 }
@@ -327,6 +359,9 @@ Device::processData(ndnph::Data data)
     case State::WaitAuthenticatorCert: {
       return handleAuthenticatorCert(data);
     }
+    case State::WaitTempCert: {
+      return handleTempCert(data);
+    }
     default:
       break;
   }
@@ -343,7 +378,10 @@ Device::handleCaProfile(ndnph::Data data)
   region.reset();
 
   GotoState gotoState(this);
-  // TODO check CA certificate is unexpired
+  if (!ndnph::certificate::getValidity(m_caProfile.cert).includes(time(nullptr))) {
+    // CA certificate expired
+    return true;
+  }
 
   gotoState(State::FetchAuthenticatorCert);
   return true;
@@ -359,10 +397,10 @@ Device::handleAuthenticatorCert(ndnph::Data data)
   region.reset();
 
   GotoState gotoState(this);
-  if (!data.verify(m_caProfile.pub)) {
+  if (!data.verify(m_caProfile.pub) ||
+      !ndnph::certificate::getValidity(data).includes(time(nullptr))) {
     return false;
   }
-  // TODO check authenticator certificate is unexpired
 
   ndnph::Name tSubject = computeTempSubjectName(region, data.getName(), m_deviceName);
   if (!tSubject || !ndnph::ec::generate(region, tSubject, m_tPvt, m_tPub)) {
@@ -370,9 +408,31 @@ Device::handleAuthenticatorCert(ndnph::Data data)
   }
 
   auto tCert = m_tPub.selfSign(region, ndnph::ValidityPeriod::getMax(), m_tPvt);
-  send(makeConfirmResponseData(region, m_confirmRequestInterestName, m_session, tCert),
-       m_confirmRequestPacketInfo) &&
+  send(makeConfirmResponseData(region, m_lastInterestName, m_session, tCert),
+       m_lastInterestPacketInfo) &&
     gotoState(State::WaitCredentialRequest);
+  return true;
+}
+
+bool
+Device::handleTempCert(ndnph::Data data)
+{
+  ndnph::StaticRegion<2048> region;
+  if (data.getFullName(region) != m_tempCertName) {
+    return false;
+  }
+  region.reset();
+
+  // TODO clone and save tempCert
+
+  GotoState gotoState(this);
+  auto res = region.create<ndnph::Data>();
+  if (!res) {
+    return true;
+  }
+  res.setName(m_lastInterestName);
+  send(res.sign(ndnph::NullKey::get()), m_lastInterestPacketInfo) &&
+    gotoState(State::PendingCompletion);
   return true;
 }
 

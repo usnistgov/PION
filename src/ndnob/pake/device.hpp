@@ -32,6 +32,8 @@ public:
     FetchAuthenticatorCert,
     WaitAuthenticatorCert,
     WaitCredentialRequest,
+    FetchTempCert,
+    WaitTempCert,
     PendingCompletion,
     Success,
     Failure,
@@ -55,6 +57,8 @@ private:
 
   bool checkInterestVerb(ndnph::Interest interest, const ndnph::Component& expectedVerb);
 
+  void saveCurrentInterest(ndnph::Interest interest);
+
   bool handlePakeRequest(ndnph::Interest interest);
 
   bool handleConfirmRequest(ndnph::Interest interest);
@@ -69,11 +73,14 @@ private:
 
   bool handleAuthenticatorCert(ndnph::Data data);
 
+  bool handleTempCert(ndnph::Data data);
+
 private:
   class GotoState;
   class PakeRequest;
   class PakeResponse;
   class ConfirmRequest;
+  class CredentialRequest;
 
   State m_state = State::Idle;
   ndnph::port::Clock::Time m_deadline;
@@ -85,11 +92,12 @@ private:
   ndnph::EcPrivateKey m_tPvt;
   ndnph::EcPublicKey m_tPub;
 
-  ndnph::Name m_confirmRequestInterestName;
-  PacketInfo m_confirmRequestPacketInfo;
+  ndnph::Name m_lastInterestName;
+  PacketInfo m_lastInterestPacketInfo;
   ndnph::Name m_caProfileName;
   ndnph::Name m_authenticatorCertName;
   ndnph::Name m_deviceName;
+  ndnph::Name m_tempCertName;
   ndnph::ndncert::client::CaProfile m_caProfile;
 };
 

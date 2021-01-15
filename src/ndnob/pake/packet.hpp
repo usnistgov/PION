@@ -145,6 +145,9 @@ public:
    */
   bool assign(ndnph::Region& region, ndnph::Name name);
 
+  /** @brief Construct Interest name. */
+  ndnph::Name makeName(ndnph::Region& region, const ndnph::Component& verb);
+
   /**
    * @brief Import AES-GCM key.
    * @return whether success.
@@ -180,6 +183,8 @@ public:
 ndnph::Name
 computeTempSubjectName(ndnph::Region& region, ndnph::Name authenticatorCertName,
                        ndnph::Name deviceName);
+
+using TempCertValidity = std::integral_constant<int, 300>;
 
 } // namespace pake
 } // namespace ndnob
