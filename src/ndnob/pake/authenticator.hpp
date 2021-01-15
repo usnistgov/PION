@@ -83,9 +83,8 @@ private:
   ndnph::tlv::Value m_nc;
   ndnph::Name m_deviceName;
 
+  OutgoingPendingInterest m_pending;
   State m_state = State::Idle;
-  ndnph::port::Clock::Time m_deadline;
-  uint64_t m_lastPitToken = 0;
 
   ndnph::DynamicRegion m_region;
   EncryptSession m_session;

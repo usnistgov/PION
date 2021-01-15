@@ -3,8 +3,6 @@
 namespace ndnob {
 namespace pake {
 
-static constexpr int REQUEST_DEADLINE = 4000;
-
 class Authenticator::GotoState
 {
 public:
@@ -12,10 +10,9 @@ public:
     : m_authenticator(authenticator)
   {}
 
-  bool operator()(State state, int deadline = REQUEST_DEADLINE)
+  bool operator()(State state)
   {
     m_authenticator->m_state = state;
-    m_authenticator->m_deadline = ndnph::port::Clock::add(ndnph::port::Clock::now(), deadline);
     m_set = true;
     return true;
   }
@@ -158,6 +155,7 @@ Authenticator::Authenticator(const Options& opts)
   , m_pvt(opts.pvt)
   , m_nc(opts.nc)
   , m_deviceName(opts.deviceName)
+  , m_pending(this)
   , m_region(4096)
 {}
 
@@ -175,9 +173,7 @@ Authenticator::begin(ndnph::tlv::Value password)
 {
   end();
 
-  if (!m_session.begin(m_region) ||
-      !ndnph::port::RandomSource::generate(reinterpret_cast<uint8_t*>(&m_lastPitToken),
-                                           sizeof(m_lastPitToken))) {
+  if (!m_session.begin(m_region)) {
     return false;
   }
 
@@ -206,7 +202,7 @@ Authenticator::loop()
     case State::WaitPakeResponse:
     case State::WaitConfirmResponse:
     case State::WaitCredentialResponse: {
-      if (ndnph::port::Clock::isBefore(m_deadline, ndnph::port::Clock::now())) {
+      if (m_pending.expired()) {
         m_state = State::Failure;
       }
       break;
@@ -219,7 +215,7 @@ Authenticator::loop()
 bool
 Authenticator::processData(ndnph::Data data)
 {
-  if (getCurrentPacketInfo()->pitToken != m_lastPitToken) {
+  if (!m_pending.matchPitToken()) {
     return false;
   }
   switch (m_state) {
@@ -246,8 +242,7 @@ Authenticator::sendPakeRequest()
   GotoState gotoState(this);
   PakeRequest req;
   m_spake2->generateFirstMessage(req.spake2T, sizeof(req.spake2T)) &&
-    send(req.toInterest(region, m_session), WithPitToken(++m_lastPitToken)) &&
-    gotoState(State::WaitPakeResponse);
+    m_pending.send(req.toInterest(region, m_session)) && gotoState(State::WaitPakeResponse);
 }
 
 bool
@@ -275,10 +270,7 @@ Authenticator::handlePakeResponse(ndnph::Data data)
   req.authenticatorCertName = m_cert.getFullName(region);
   req.deviceName = m_deviceName;
   // req.timestamp is ignored; current timestamp will be used
-  ok = send(req.toInterest(region, m_session), WithPitToken(++m_lastPitToken));
-  if (ok) {
-    gotoState(State::WaitConfirmResponse);
-  }
+  m_pending.send(req.toInterest(region, m_session)) && gotoState(State::WaitConfirmResponse);
   return true;
 }
 
@@ -319,7 +311,7 @@ Authenticator::sendCredentialRequest()
   GotoState gotoState(this);
   CredentialRequest req;
   req.tempCertName = m_issued.getFullName(region);
-  !!req.tempCertName && send(req.toInterest(region, m_session), WithPitToken(++m_lastPitToken)) &&
+  !!req.tempCertName && m_pending.send(req.toInterest(region, m_session)) &&
     gotoState(State::WaitCredentialResponse);
 }
 

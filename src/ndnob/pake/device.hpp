@@ -34,7 +34,6 @@ public:
     WaitCredentialRequest,
     FetchTempCert,
     WaitTempCert,
-    PendingCompletion,
     Success,
     Failure,
   };
@@ -82,9 +81,8 @@ private:
   class ConfirmRequest;
   class CredentialRequest;
 
+  OutgoingPendingInterest m_pending;
   State m_state = State::Idle;
-  ndnph::port::Clock::Time m_deadline;
-  uint64_t m_lastPitToken = 0;
 
   ndnph::DynamicRegion m_region;
   EncryptSession m_session;

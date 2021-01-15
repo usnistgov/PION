@@ -4,9 +4,6 @@
 namespace ndnob {
 namespace pake {
 
-static constexpr int REQUEST_DEADLINE = 2000;
-static constexpr int COMPLETE_DEADLINE = 6000;
-
 class Device::GotoState
 {
 public:
@@ -14,10 +11,9 @@ public:
     : m_device(device)
   {}
 
-  bool operator()(State state, int deadline = REQUEST_DEADLINE)
+  bool operator()(State state)
   {
     m_device->m_state = state;
-    m_device->m_deadline = ndnph::port::Clock::add(ndnph::port::Clock::now(), deadline);
     m_set = true;
     return true;
   }
@@ -159,6 +155,7 @@ public:
 
 Device::Device(const Options& opts)
   : PacketHandler(opts.face, 192)
+  , m_pending(this)
   , m_region(4096)
 {}
 
@@ -178,9 +175,7 @@ Device::begin(ndnph::tlv::Value password)
 
   mbed::Object<mbedtls_entropy_context, mbedtls_entropy_init, mbedtls_entropy_free> entropy;
   m_spake2.reset(new spake2::Spake2(spake2::Role::Bob, entropy));
-  if (!m_spake2->start(password.begin(), password.size()) ||
-      !ndnph::port::RandomSource::generate(reinterpret_cast<uint8_t*>(&m_lastPitToken),
-                                           sizeof(m_lastPitToken))) {
+  if (!m_spake2->start(password.begin(), password.size())) {
     return false;
   }
 
@@ -191,7 +186,6 @@ Device::begin(ndnph::tlv::Value password)
 void
 Device::loop()
 {
-  State timeoutState = State::Failure;
   switch (m_state) {
     case State::FetchCaProfile: {
       sendFetchInterest(m_caProfileName, State::WaitCaProfile);
@@ -205,13 +199,11 @@ Device::loop()
       sendFetchInterest(m_tempCertName, State::WaitTempCert);
       break;
     }
-    case State::PendingCompletion:
-      timeoutState = State::Success;
-      // fallthrough
     case State::WaitCaProfile:
-    case State::WaitAuthenticatorCert: {
-      if (ndnph::port::Clock::isBefore(m_deadline, ndnph::port::Clock::now())) {
-        m_state = timeoutState;
+    case State::WaitAuthenticatorCert:
+    case State::WaitTempCert: {
+      if (m_pending.expired()) {
+        m_state = State::Failure;
       }
       break;
     }
@@ -341,15 +333,14 @@ Device::sendFetchInterest(const ndnph::Name& name, State nextState)
     return;
   }
   interest.setName(name);
-  send(interest, WithEndpointId(m_lastInterestPacketInfo.endpointId),
-       WithPitToken(++m_lastPitToken)) &&
+  m_pending.send(interest, WithEndpointId(m_lastInterestPacketInfo.endpointId)) &&
     gotoState(nextState);
 }
 
 bool
 Device::processData(ndnph::Data data)
 {
-  if (getCurrentPacketInfo()->pitToken != m_lastPitToken) {
+  if (!m_pending.matchPitToken()) {
     return false;
   }
   switch (m_state) {
@@ -371,11 +362,9 @@ Device::processData(ndnph::Data data)
 bool
 Device::handleCaProfile(ndnph::Data data)
 {
-  ndnph::StaticRegion<2048> region;
-  if (data.getFullName(region) != m_caProfileName || !m_caProfile.fromData(m_region, data)) {
+  if (!m_pending.match(data, m_caProfileName) || !m_caProfile.fromData(m_region, data)) {
     return false;
   }
-  region.reset();
 
   GotoState gotoState(this);
   if (!ndnph::certificate::getValidity(m_caProfile.cert).includes(time(nullptr))) {
@@ -390,12 +379,11 @@ Device::handleCaProfile(ndnph::Data data)
 bool
 Device::handleAuthenticatorCert(ndnph::Data data)
 {
-  ndnph::StaticRegion<2048> region;
-  if (data.getFullName(region) != m_authenticatorCertName) {
+  if (!m_pending.match(data, m_authenticatorCertName)) {
     return false;
   }
-  region.reset();
 
+  ndnph::StaticRegion<2048> region;
   GotoState gotoState(this);
   if (!data.verify(m_caProfile.pub) ||
       !ndnph::certificate::getValidity(data).includes(time(nullptr))) {
@@ -417,22 +405,19 @@ Device::handleAuthenticatorCert(ndnph::Data data)
 bool
 Device::handleTempCert(ndnph::Data data)
 {
-  ndnph::StaticRegion<2048> region;
-  if (data.getFullName(region) != m_tempCertName) {
+  if (!m_pending.match(data, m_tempCertName)) {
     return false;
   }
-  region.reset();
-
   // TODO clone and save tempCert
 
+  ndnph::StaticRegion<2048> region;
   GotoState gotoState(this);
   auto res = region.create<ndnph::Data>();
   if (!res) {
     return true;
   }
   res.setName(m_lastInterestName);
-  send(res.sign(ndnph::NullKey::get()), m_lastInterestPacketInfo) &&
-    gotoState(State::PendingCompletion);
+  send(res.sign(ndnph::NullKey::get()), m_lastInterestPacketInfo) && gotoState(State::Success);
   return true;
 }
 
