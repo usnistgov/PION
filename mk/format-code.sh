@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eo pipefail
-cd "$( dirname "${BASH_SOURCE[0]}" )"/..
+cd "$(dirname "${BASH_SOURCE[0]}")"/..
 
-find -name '*.[hc]pp' -or -name '*.ino' | \
+git ls-files '**/*.[hc]pp' '**/*.ino' | \
   xargs clang-format-8 -i -style=file

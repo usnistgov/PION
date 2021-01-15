@@ -10,7 +10,6 @@ sed \
   spake2-mbed/mbedtls-wrappers.hpp > src/vendor/mbedtls-wrappers.hpp
 
 sed \
-  -e '/#define SPAKE2_DEBUG/ d' \
   -e '/TODO: move to \.cpp/,/namespace/ d' \
   -e '/#endif.*HPP/ i\} // namespace spake2' \
   spake2-mbed/spake2.hpp > src/vendor/spake2.hpp
@@ -21,6 +20,7 @@ sed \
   -e '1 i\namespace spake2 {' \
   -e '1,/TODO: move to \.cpp/ d' \
   -e '/SPAKE2_MBED_SPAKE2_HPP/ d' \
+  -e 's/\binline\b//g' \
   spake2-mbed/spake2.hpp > src/vendor/spake2.cpp
 
 if ! [[ -f src/vendor/mbedtls-hkdf.c ]]; then
