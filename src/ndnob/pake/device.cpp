@@ -174,7 +174,7 @@ Device::begin(ndnph::tlv::Value password)
   end();
 
   mbed::Object<mbedtls_entropy_context, mbedtls_entropy_init, mbedtls_entropy_free> entropy;
-  m_spake2.reset(new spake2::Spake2(spake2::Role::Bob, entropy));
+  m_spake2.reset(new spake2::Context<>(spake2::Role::Bob, entropy));
   if (!m_spake2->start(password.begin(), password.size())) {
     return false;
   }

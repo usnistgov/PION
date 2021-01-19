@@ -178,7 +178,7 @@ Authenticator::begin(ndnph::tlv::Value password)
   }
 
   mbed::Object<mbedtls_entropy_context, mbedtls_entropy_init, mbedtls_entropy_free> entropy;
-  m_spake2.reset(new spake2::Spake2(spake2::Role::Alice, entropy));
+  m_spake2.reset(new spake2::Context<>(spake2::Role::Alice, entropy));
   if (!m_spake2->start(password.begin(), password.size())) {
     return false;
   }
