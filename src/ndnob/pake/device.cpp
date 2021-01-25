@@ -1,8 +1,9 @@
 #include "device.hpp"
-#include <sys/time.h>
 
 namespace ndnob {
 namespace pake {
+
+static mbed::Object<mbedtls_entropy_context, mbedtls_entropy_init, mbedtls_entropy_free> entropy;
 
 class Device::GotoState
 {
@@ -173,12 +174,14 @@ Device::begin(ndnph::tlv::Value password)
 {
   end();
 
-  mbed::Object<mbedtls_entropy_context, mbedtls_entropy_init, mbedtls_entropy_free> entropy;
-  m_spake2.reset(new spake2::Context<>(spake2::Role::Bob, entropy));
-  if (!m_spake2->start(password.begin(), password.size())) {
+  uint8_t* passwordCopy = m_region.alloc(password.size());
+  if (passwordCopy == nullptr) {
     return false;
   }
+  std::copy(password.begin(), password.end(), passwordCopy);
+  m_password = ndnph::tlv::Value(passwordCopy, password.size());
 
+  m_spake2.reset(new spake2::Context<>(spake2::Role::Bob, entropy));
   m_state = State::WaitPakeRequest;
   return true;
 }
@@ -259,6 +262,8 @@ Device::handlePakeRequest(ndnph::Interest interest)
   PakeRequest req;
   PakeResponse res;
   req.fromInterest(region, interest) &&
+    m_spake2->start(m_password.begin(), m_password.size(), nullptr, 0, nullptr, 0,
+                    m_session.ss.value(), m_session.ss.length()) &&
     m_spake2->generateFirstMessage(res.spake2S, sizeof(res.spake2S)) &&
     m_spake2->processFirstMessage(req.spake2T, sizeof(req.spake2T)) &&
     m_spake2->generateSecondMessage(res.spake2Fkcb, sizeof(res.spake2Fkcb)) &&
@@ -289,12 +294,7 @@ Device::handleConfirmRequest(ndnph::Interest interest)
     return true;
   }
 
-#ifdef ARDUINO
-  timeval tv = {
-    .tv_sec = static_cast<long>(req.timestamp / ndnph::convention::TimeValue::Microseconds),
-  };
-  settimeofday(&tv, nullptr);
-#endif
+  ndnph::port::UnixTime::set(req.timestamp);
 
   saveCurrentInterest(interest);
   m_caProfileName = req.caProfileName.clone(m_region);
@@ -385,8 +385,7 @@ Device::handleAuthenticatorCert(ndnph::Data data)
 
   ndnph::StaticRegion<2048> region;
   GotoState gotoState(this);
-  if (!data.verify(m_caProfile.pub) ||
-      !ndnph::certificate::getValidity(data).includes(time(nullptr))) {
+  if (!data.verify(m_caProfile.pub) || !ndnph::certificate::getValidity(data).includesUnix()) {
     return false;
   }
 

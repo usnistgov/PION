@@ -85,6 +85,7 @@ private:
   State m_state = State::Idle;
 
   ndnph::DynamicRegion m_region;
+  ndnph::tlv::Value m_password;
   EncryptSession m_session;
   std::unique_ptr<spake2::Context<>> m_spake2;
   ndnph::EcPrivateKey m_tPvt;

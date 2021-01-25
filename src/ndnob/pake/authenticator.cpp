@@ -3,6 +3,8 @@
 namespace ndnob {
 namespace pake {
 
+static mbed::Object<mbedtls_entropy_context, mbedtls_entropy_init, mbedtls_entropy_free> entropy;
+
 class Authenticator::GotoState
 {
 public:
@@ -177,9 +179,9 @@ Authenticator::begin(ndnph::tlv::Value password)
     return false;
   }
 
-  mbed::Object<mbedtls_entropy_context, mbedtls_entropy_init, mbedtls_entropy_free> entropy;
   m_spake2.reset(new spake2::Context<>(spake2::Role::Alice, entropy));
-  if (!m_spake2->start(password.begin(), password.size())) {
+  if (!m_spake2->start(password.begin(), password.size(), nullptr, 0, nullptr, 0,
+                       m_session.ss.value(), m_session.ss.length())) {
     return false;
   }
 
