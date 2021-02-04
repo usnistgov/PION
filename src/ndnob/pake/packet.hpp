@@ -24,13 +24,15 @@ namespace packet_struct {
 
 struct PakeRequest
 {
-  uint8_t spake2T[65];
+  uint8_t spake2pa[spake2::Context<>::FirstMessageSize];
+  ndnph::Name authenticatorCertName;
 
 #ifdef NDNPH_PRINT_OSTREAM
   friend std::ostream& operator<<(std::ostream& os, const PakeRequest& p)
   {
     os << "PakeRequest(";
-    NDNOB_PACKET_PRINT_FIELD_HEX(spake2T);
+    NDNOB_PACKET_PRINT_FIELD_HEX(spake2pa);
+    os << ",authenticatorCertName=" << p.authenticatorCertName;
     return os << ")";
   }
 #endif // NDNPH_PRINT_OSTREAM
@@ -38,16 +40,16 @@ struct PakeRequest
 
 struct PakeResponse
 {
-  uint8_t spake2S[65];
-  uint8_t spake2Fkcb[32];
+  uint8_t spake2pb[spake2::Context<>::FirstMessageSize];
+  uint8_t spake2cb[spake2::Context<>::SecondMessageSize];
 
 #ifdef NDNPH_PRINT_OSTREAM
   friend std::ostream& operator<<(std::ostream& os, const PakeResponse& p)
   {
     os << "PakeResponse(";
-    NDNOB_PACKET_PRINT_FIELD_HEX(spake2S);
+    NDNOB_PACKET_PRINT_FIELD_HEX(spake2pb);
     os << ",";
-    NDNOB_PACKET_PRINT_FIELD_HEX(spake2Fkcb);
+    NDNOB_PACKET_PRINT_FIELD_HEX(spake2cb);
     return os << ")";
   }
 #endif // NDNPH_PRINT_OSTREAM
@@ -55,10 +57,9 @@ struct PakeResponse
 
 struct ConfirmRequest
 {
-  uint8_t spake2Fkca[32];
+  uint8_t spake2ca[spake2::Context<>::SecondMessageSize];
   ndnph::tlv::Value nc;
   ndnph::Name caProfileName;
-  ndnph::Name authenticatorCertName;
   ndnph::Name deviceName;
   uint64_t timestamp;
 
@@ -66,10 +67,9 @@ struct ConfirmRequest
   friend std::ostream& operator<<(std::ostream& os, const ConfirmRequest& p)
   {
     os << "ConfirmRequest(";
-    NDNOB_PACKET_PRINT_FIELD_HEX(spake2Fkca);
+    NDNOB_PACKET_PRINT_FIELD_HEX(spake2ca);
     os << ",nc.size=" << p.nc.size();
     os << ",caProfileName=" << p.caProfileName;
-    os << ",authenticatorCertName=" << p.authenticatorCertName;
     os << ",deviceName=" << p.deviceName;
     os << ",timestamp=" << p.timestamp;
     return os << ")";
@@ -120,7 +120,7 @@ struct CredentialResponse
 
 } // namespace packet_struct
 
-using AesGcm = ndnph::mbedtls::AesGcm<128>;
+using AesGcm = ndnph::mbedtls::AesGcm<spake2::Context<>::SharedKeySize * 8>;
 
 using Encrypted =
   ndnph::EncryptedMessage<TT::InitializationVector, AesGcm::IvLen::value, TT::AuthenticationTag,

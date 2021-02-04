@@ -38,12 +38,17 @@ public:
   {
     return ndnph::EvDecoder::decodeValue(
       interest.getAppParameters().makeDecoder(),
-      ndnph::EvDecoder::def<TT::Spake2T>([this](const ndnph::Decoder::Tlv& d) {
-        if (d.length == sizeof(spake2T)) {
-          std::copy_n(d.value, d.length, spake2T);
+      ndnph::EvDecoder::def<TT::Spake2PA>([this](const ndnph::Decoder::Tlv& d) {
+        if (d.length == sizeof(spake2pa)) {
+          std::copy_n(d.value, d.length, spake2pa);
           return true;
         }
         return false;
+      }),
+      ndnph::EvDecoder::def<TT::AuthenticatorCertName>([this](const ndnph::Decoder::Tlv& d) {
+        return d.vd().decode(authenticatorCertName) &&
+               authenticatorCertName[-1].is<ndnph::convention::ImplicitDigest>() &&
+               ndnph::certificate::isCertName(authenticatorCertName.getPrefix(-1));
       }));
   }
 };
@@ -56,10 +61,10 @@ public:
     ndnph::Encoder encoder(region);
     encoder.prepend(
       [this](ndnph::Encoder& encoder) {
-        encoder.prependTlv(TT::Spake2S, ndnph::tlv::Value(spake2S, sizeof(spake2S)));
+        encoder.prependTlv(TT::Spake2PB, ndnph::tlv::Value(spake2pb, sizeof(spake2pb)));
       },
       [this](ndnph::Encoder& encoder) {
-        encoder.prependTlv(TT::Spake2Fkcb, ndnph::tlv::Value(spake2Fkcb, sizeof(spake2Fkcb)));
+        encoder.prependTlv(TT::Spake2CB, ndnph::tlv::Value(spake2cb, sizeof(spake2cb)));
       });
     encoder.trim();
 
@@ -81,9 +86,9 @@ public:
     Encrypted encrypted;
     bool ok = ndnph::EvDecoder::decodeValue(
       interest.getAppParameters().makeDecoder(),
-      ndnph::EvDecoder::def<TT::Spake2Fkca>([this](const ndnph::Decoder::Tlv& d) {
-        if (d.length == sizeof(spake2Fkca)) {
-          std::copy_n(d.value, d.length, spake2Fkca);
+      ndnph::EvDecoder::def<TT::Spake2CA>([this](const ndnph::Decoder::Tlv& d) {
+        if (d.length == sizeof(spake2ca)) {
+          std::copy_n(d.value, d.length, spake2ca);
           return true;
         }
         return false;
@@ -100,16 +105,13 @@ public:
     return !!inner &&
            ndnph::EvDecoder::decodeValue(
              inner.makeDecoder(), ndnph::EvDecoder::def<TT::Nc>(&nc),
-             ndnph::EvDecoder::def<TT::CaProfileName>(
-               [this](const ndnph::Decoder::Tlv& d) { return d.vd().decode(caProfileName); }),
-             ndnph::EvDecoder::def<TT::AuthenticatorCertName>([this](const ndnph::Decoder::Tlv& d) {
-               return d.vd().decode(authenticatorCertName);
+             ndnph::EvDecoder::def<TT::CaProfileName>([this](const ndnph::Decoder::Tlv& d) {
+               return d.vd().decode(caProfileName) &&
+                      caProfileName[-1].is<ndnph::convention::ImplicitDigest>();
              }),
              ndnph::EvDecoder::def<TT::DeviceName>(
                [this](const ndnph::Decoder::Tlv& d) { return d.vd().decode(deviceName); }),
-             ndnph::EvDecoder::defNni<TT::TimestampNameComponent>(&timestamp)) &&
-           caProfileName[-1].is<ndnph::convention::ImplicitDigest>() &&
-           authenticatorCertName[-1].is<ndnph::convention::ImplicitDigest>();
+             ndnph::EvDecoder::defNni<TT::TimestampNameComponent>(&timestamp));
   }
 };
 
@@ -261,13 +263,19 @@ Device::handlePakeRequest(ndnph::Interest interest)
   GotoState gotoState(this);
   PakeRequest req;
   PakeResponse res;
-  req.fromInterest(region, interest) &&
-    m_spake2->start(m_password.begin(), m_password.size(), nullptr, 0, nullptr, 0,
+  bool ok =
+    req.fromInterest(region, interest) &&
+    m_spake2->start(m_password.begin(), m_password.size(), nullptr, 0,
+                    req.authenticatorCertName[-1].value(), req.authenticatorCertName[-1].length(),
                     m_session.ss.value(), m_session.ss.length()) &&
-    m_spake2->generateFirstMessage(res.spake2S, sizeof(res.spake2S)) &&
-    m_spake2->processFirstMessage(req.spake2T, sizeof(req.spake2T)) &&
-    m_spake2->generateSecondMessage(res.spake2Fkcb, sizeof(res.spake2Fkcb)) &&
+    m_spake2->generateFirstMessage(res.spake2pb, sizeof(res.spake2pb)) &&
+    m_spake2->processFirstMessage(req.spake2pa, sizeof(req.spake2pa)) &&
+    m_spake2->generateSecondMessage(res.spake2cb, sizeof(res.spake2cb)) &&
     reply(res.toData(region, interest)) && gotoState(State::WaitConfirmRequest);
+
+  if (ok) {
+    m_authenticatorCertName = req.authenticatorCertName.clone(m_region);
+  }
   return true;
 }
 
@@ -284,7 +292,7 @@ Device::handleConfirmRequest(ndnph::Interest interest)
   bool ok = false;
   Encrypted encrypted;
   std::tie(ok, encrypted) = req.fromInterest(interest);
-  ok = ok && m_spake2->processSecondMessage(req.spake2Fkca, sizeof(req.spake2Fkca));
+  ok = ok && m_spake2->processSecondMessage(req.spake2ca, sizeof(req.spake2ca));
   if (!ok) {
     return true;
   }
@@ -298,7 +306,6 @@ Device::handleConfirmRequest(ndnph::Interest interest)
 
   saveCurrentInterest(interest);
   m_caProfileName = req.caProfileName.clone(m_region);
-  m_authenticatorCertName = req.authenticatorCertName.clone(m_region);
   m_deviceName = req.deviceName.clone(m_region);
 
   return gotoState(State::FetchCaProfile);

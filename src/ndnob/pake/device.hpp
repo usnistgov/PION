@@ -93,8 +93,8 @@ private:
 
   ndnph::Name m_lastInterestName;
   PacketInfo m_lastInterestPacketInfo;
-  ndnph::Name m_caProfileName;
   ndnph::Name m_authenticatorCertName;
+  ndnph::Name m_caProfileName;
   ndnph::Name m_deviceName;
   ndnph::Name m_tempCertName;
   ndnph::ndncert::client::CaProfile m_caProfile;

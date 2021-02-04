@@ -10,13 +10,13 @@ namespace pake {
 namespace TT {
 enum
 {
-  Spake2T = 0x8F01,
-  Spake2S = 0x8F03,
-  Spake2Fkcb = 0x8F05,
-  Spake2Fkca = 0x8F07,
+  Spake2PA = 0x8F01,
+  AuthenticatorCertName = 0x8F0D,
+  Spake2PB = 0x8F03,
+  Spake2CB = 0x8F05,
+  Spake2CA = 0x8F07,
   Nc = 0x8F09,
   CaProfileName = 0x8F0B,
-  AuthenticatorCertName = 0x8F0D,
   DeviceName = 0x8F0F,
   TReq = 0x8F11,
 };
