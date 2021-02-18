@@ -1,2 +1,5 @@
+/.env
+/.vscode
 /package-lock.json
+/runtime
 node_modules
