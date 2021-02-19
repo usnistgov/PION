@@ -43,10 +43,28 @@ public:
     return m_state;
   }
 
-  // XXX temporary
+  const ndnph::ndncert::client::CaProfile& getCaProfile() const
+  {
+    assert(m_state == State::Success);
+    return m_caProfile;
+  }
+
   const ndnph::Name& getDeviceName() const
   {
+    assert(m_state == State::Success);
     return m_deviceName;
+  }
+
+  const ndnph::Data& getTempCert() const
+  {
+    assert(m_state == State::Success);
+    return m_tempCert;
+  }
+
+  const ndnph::PrivateKey& getTempSigner() const
+  {
+    assert(m_state == State::Success);
+    return m_tPvt;
   }
 
 private:
@@ -74,6 +92,8 @@ private:
 
   bool handleTempCert(ndnph::Data data);
 
+  void finishSession();
+
 private:
   class GotoState;
   class PakeRequest;
@@ -83,21 +103,25 @@ private:
 
   OutgoingPendingInterest m_pending;
   State m_state = State::Idle;
+  std::unique_ptr<ndnph::StaticRegion<2048>> m_iRegion; // for intermediate values
+  std::unique_ptr<ndnph::StaticRegion<2048>> m_oRegion; // for output values
 
-  ndnph::DynamicRegion m_region;
   ndnph::tlv::Value m_password;
   EncryptSession m_session;
   std::unique_ptr<spake2::Context<>> m_spake2;
-  ndnph::EcPrivateKey m_tPvt;
-  ndnph::EcPublicKey m_tPub;
 
   ndnph::Name m_lastInterestName;
   PacketInfo m_lastInterestPacketInfo;
   ndnph::Name m_authenticatorCertName;
   ndnph::Name m_caProfileName;
-  ndnph::Name m_deviceName;
   ndnph::Name m_tempCertName;
+
+  ndnph::EcPrivateKey m_tPvt;
+  ndnph::EcPublicKey m_tPub;
+  ndnph::tlv::Value m_networkCredential;
   ndnph::ndncert::client::CaProfile m_caProfile;
+  ndnph::Name m_deviceName;
+  ndnph::Data m_tempCert;
 };
 
 } // namespace pake

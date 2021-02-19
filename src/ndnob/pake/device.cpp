@@ -15,6 +15,9 @@ public:
   bool operator()(State state)
   {
     m_device->m_state = state;
+    if (state == State::Success || state == State::Failure) {
+      m_device->finishSession();
+    }
     m_set = true;
     return true;
   }
@@ -22,7 +25,7 @@ public:
   ~GotoState()
   {
     if (!m_set) {
-      m_device->m_state = State::Failure;
+      operator()(State::Failure);
     }
   }
 
@@ -159,25 +162,26 @@ public:
 Device::Device(const Options& opts)
   : PacketHandler(opts.face, 192)
   , m_pending(this)
-  , m_region(4096)
 {}
 
 void
 Device::end()
 {
-  m_session.end();
-  m_spake2.reset();
+  finishSession();
   m_state = State::Idle;
-  m_region.reset();
+  m_oRegion.reset();
 }
 
 bool
 Device::begin(ndnph::tlv::Value password)
 {
   end();
+  m_iRegion.reset(new decltype(m_iRegion)::element_type);
+  m_oRegion.reset(new decltype(m_oRegion)::element_type);
 
-  uint8_t* passwordCopy = m_region.alloc(password.size());
+  uint8_t* passwordCopy = m_iRegion->alloc(password.size());
   if (passwordCopy == nullptr) {
+    end();
     return false;
   }
   std::copy(password.begin(), password.end(), passwordCopy);
@@ -242,13 +246,13 @@ Device::checkInterestVerb(ndnph::Interest interest, const ndnph::Component& expe
   const auto& name = interest.getName();
   return name.size() == getLocalhopOnboardingPrefix().size() + 3 &&
          getLocalhopOnboardingPrefix().isPrefixOf(name) && name[-2] == expectedVerb &&
-         interest.checkDigest() && m_session.assign(m_region, interest.getName());
+         interest.checkDigest() && m_session.assign(*m_iRegion, interest.getName());
 }
 
 void
 Device::saveCurrentInterest(ndnph::Interest interest)
 {
-  m_lastInterestName = interest.getName().clone(m_region);
+  m_lastInterestName = interest.getName().clone(*m_iRegion);
   m_lastInterestPacketInfo = *getCurrentPacketInfo();
 }
 
@@ -274,7 +278,7 @@ Device::handlePakeRequest(ndnph::Interest interest)
     reply(res.toData(region, interest)) && gotoState(State::WaitConfirmRequest);
 
   if (ok) {
-    m_authenticatorCertName = req.authenticatorCertName.clone(m_region);
+    m_authenticatorCertName = req.authenticatorCertName.clone(*m_iRegion);
   }
   return true;
 }
@@ -305,8 +309,9 @@ Device::handleConfirmRequest(ndnph::Interest interest)
   ndnph::port::UnixTime::set(req.timestamp);
 
   saveCurrentInterest(interest);
-  m_caProfileName = req.caProfileName.clone(m_region);
-  m_deviceName = req.deviceName.clone(m_region);
+  m_networkCredential = req.nc.clone(*m_oRegion);
+  m_caProfileName = req.caProfileName.clone(*m_iRegion);
+  m_deviceName = req.deviceName.clone(*m_oRegion);
 
   return gotoState(State::FetchCaProfile);
 }
@@ -326,7 +331,7 @@ Device::handleCredentialRequest(ndnph::Interest interest)
   }
 
   saveCurrentInterest(interest);
-  m_tempCertName = req.tempCertName.clone(m_region);
+  m_tempCertName = req.tempCertName.clone(*m_iRegion);
   return gotoState(State::FetchTempCert);
 }
 
@@ -369,7 +374,7 @@ Device::processData(ndnph::Data data)
 bool
 Device::handleCaProfile(ndnph::Data data)
 {
-  if (!m_pending.match(data, m_caProfileName) || !m_caProfile.fromData(m_region, data)) {
+  if (!m_pending.match(data, m_caProfileName) || !m_caProfile.fromData(*m_oRegion, data)) {
     return false;
   }
 
@@ -397,7 +402,7 @@ Device::handleAuthenticatorCert(ndnph::Data data)
   }
 
   ndnph::Name tSubject = computeTempSubjectName(region, data.getName(), m_deviceName);
-  if (!tSubject || !ndnph::ec::generate(region, tSubject, m_tPvt, m_tPub)) {
+  if (!tSubject || !ndnph::ec::generate(*m_oRegion, tSubject, m_tPvt, m_tPub)) {
     return true;
   }
 
@@ -414,17 +419,28 @@ Device::handleTempCert(ndnph::Data data)
   if (!m_pending.match(data, m_tempCertName)) {
     return false;
   }
-  // TODO clone and save tempCert
 
-  ndnph::StaticRegion<2048> region;
   GotoState gotoState(this);
+  ndnph::StaticRegion<2048> region;
   auto res = region.create<ndnph::Data>();
-  if (!res) {
+
+  m_tempCert = m_oRegion->create<ndnph::Data>();
+  if (!res || !m_tempCert || !m_tempCert.decodeFrom(data)) {
     return true;
   }
+  m_tPvt.setName(m_tempCert.getName());
+
   res.setName(m_lastInterestName);
   send(res.sign(ndnph::NullKey::get()), m_lastInterestPacketInfo) && gotoState(State::Success);
   return true;
+}
+
+void
+Device::finishSession()
+{
+  m_session.end();
+  m_spake2.reset();
+  m_iRegion.reset();
 }
 
 } // namespace pake

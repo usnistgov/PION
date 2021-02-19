@@ -75,6 +75,12 @@ waitPake()
   NDNOB_LOG_STATE("pake-device", deviceState);
   switch (deviceState) {
     case ndnob::pake::Device::State::Success: {
+      Serial.println(device->getCaProfile().prefix);
+      Serial.println(device->getDeviceName());
+      Serial.println(device->getTempCert().getName());
+      ndnph::DSigInfo si;
+      device->getTempSigner().updateSigInfo(si);
+      Serial.println(si.name);
       state = State::WaitDirectDisconnect;
       break;
     }
