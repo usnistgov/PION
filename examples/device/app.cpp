@@ -10,11 +10,11 @@ loop()
   NDNOB_LOG_STATE("app", state);
   switch (state) {
     case State::Idle: {
-      state = State::WaitPassword;
+      state = State::MakePassword;
       break;
     }
-    case State::WaitPassword: {
-      state = State::WaitDirectConnect;
+    case State::MakePassword: {
+      doMakePassword();
       break;
     }
     case State::WaitDirectConnect: {
@@ -38,7 +38,7 @@ loop()
       break;
     }
     case State::Success: {
-      Serial.printf("%lu [ndnob.O.cert] ", millis());
+      NDNOB_LOG_MSG("O.cert", "");
       Serial.println(getDeviceCert().getName());
       // fallthrough
     }

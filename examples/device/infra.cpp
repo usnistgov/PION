@@ -17,7 +17,7 @@ static std::unique_ptr<ndnph::ndncert::client::PossessionChallenge> challenge;
 static ndnph::Data oCert;
 
 static bool
-waitWiFiConnect()
+waitConnect()
 {
   while (true) {
     auto st = WiFi.status();
@@ -44,7 +44,7 @@ doInfraConnect()
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   WiFi.begin(NDNOB_INFRA_STA_SSID, NDNOB_INFRA_STA_PASS);
-  if (!waitWiFiConnect()) {
+  if (!waitConnect()) {
     NDNOB_LOG_ERR("WiFi.begin failure");
     return;
   }

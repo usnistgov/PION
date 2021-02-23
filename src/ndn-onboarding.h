@@ -1,6 +1,7 @@
 #ifndef NDN_ONBOARDING_H
 #define NDN_ONBOARDING_H
 
+#include "ndnob/log.hpp"
 #include "ndnob/pake/authenticator.hpp"
 #include "ndnob/pake/device.hpp"
 

@@ -18,9 +18,6 @@ doDirectConnect()
   GotoState gotoState;
 
 #if defined(NDNOB_DIRECT_WIFI)
-  WiFi.persistent(false);
-  WiFi.mode(WIFI_AP_STA);
-  WiFi.disconnect();
   WiFi.softAP(NDNOB_DIRECT_AP_SSID, NDNOB_DIRECT_AP_PASS, 1, 0, 1);
   while (WiFi.softAPgetStationNum() == 0) {
     delay(100);
@@ -44,7 +41,7 @@ initPake()
   device.reset(new ndnob::pake::Device(ndnob::pake::Device::Options{
     face : *face,
   }));
-  if (!device->begin(ndnph::tlv::Value::fromString("password"))) {
+  if (!device->begin(getPassword())) {
     NDNOB_LOG_ERR("device.begin error");
     return false;
   }

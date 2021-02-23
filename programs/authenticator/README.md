@@ -28,5 +28,5 @@ export NDNPH_UPLINK_UDP_PORT=46363
 NETWORK_PREFIX=/my-network
 DEVICE_NAME=${NETWORK_PREFIX}/device${RANDOM}
 
-ndnob-authenticator ${AUTHENTICATOR_KEYSLOT} ${CA_PROFILE_FILE} ${DEVICE_NAME}
+ndnob-authenticator -P ${CA_PROFILE_FILE} -i ${AUTHENTICATOR_KEYSLOT} -n ${DEVICE_NAME} -p password -N ''
 ```

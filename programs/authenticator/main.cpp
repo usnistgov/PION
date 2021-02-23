@@ -1,22 +1,61 @@
 #include "ndn-onboarding.h"
 
-ndnph::Face& face = ndnph::cli::openUplink();
-ndnph::StaticRegion<65536> region;
+static ndnph::Face& face = ndnph::cli::openUplink();
+static ndnph::StaticRegion<65536> region;
+static std::string profileFilename;
+static std::string authenticatorKeySlot;
+static ndnph::Name deviceName;
+static ndnph::tlv::Value pakePassword;
+static ndnph::tlv::Value networkCredential;
+
+static bool
+parseArgs(int argc, char** argv)
+{
+  int c;
+  while ((c = getopt(argc, argv, "P:i:n:p:N:")) != -1) {
+    switch (c) {
+      case 'P': {
+        profileFilename = optarg;
+        break;
+      }
+      case 'i': {
+        authenticatorKeySlot = ndnph::cli::checkKeyChainId(optarg);
+        break;
+      }
+      case 'n': {
+        deviceName = ndnph::Name::parse(region, optarg);
+        break;
+      }
+      case 'p': {
+        pakePassword = ndnph::tlv::Value::fromString(optarg);
+        break;
+      }
+      case 'N': {
+        networkCredential = ndnph::tlv::Value::fromString(optarg);
+        break;
+      }
+    }
+  }
+
+  return argc - optind == 0 && !profileFilename.empty() && !authenticatorKeySlot.empty() &&
+         !!deviceName && !!pakePassword;
+}
 
 int
 main(int argc, char** argv)
 {
-  if (argc != 4) {
-    fprintf(stderr, "%s KEY-ID CA-PROFILE-FILE DEVICE-NAME\n", argv[0]);
+  if (!parseArgs(argc, argv)) {
+    fprintf(stderr,
+            "%s -P CA-PROFILE-FILE -i AK-SLOT -n DEVICE-NAME -p PASSWORD -N NETWORK-CREDENTIAL\n",
+            argv[0]);
     return 1;
   }
 
-  std::string ak = ndnph::cli::checkKeyChainId(argv[1]);
-  auto cert = ndnph::cli::loadCertificate(region, ak + "_cert");
+  auto cert = ndnph::cli::loadCertificate(region, authenticatorKeySlot + "_cert");
   ndnph::EcPrivateKey signer;
   {
     ndnph::EcPublicKey pub;
-    ndnph::cli::loadKey(region, ak + "_key", signer, pub);
+    ndnph::cli::loadKey(region, authenticatorKeySlot + "_key", signer, pub);
     signer.setName(cert.getName());
   }
 
@@ -34,23 +73,27 @@ main(int argc, char** argv)
     caProfile : caProfile,
     cert : cert,
     signer : signer,
-    nc : ndnph::tlv::Value(),
-    deviceName : ndnph::Name::parse(region, argv[3]),
+    nc : networkCredential,
+    deviceName : deviceName,
   });
-  if (!authenticator.begin(ndnph::tlv::Value::fromString("password"))) {
+  if (!authenticator.begin(pakePassword)) {
     fprintf(stderr, "authenticator.begin error\n");
     return 1;
   }
 
-  auto lastState = ndnob::pake::Authenticator::State::Idle;
   for (;;) {
     ndnph::port::Clock::sleep(1);
     face.loop();
 
-    auto state = authenticator.getState();
-    if (state != lastState) {
-      lastState = state;
-      fprintf(stderr, "state=%d\n", static_cast<int>(state));
+    auto st = authenticator.getState();
+    NDNOB_LOG_STATE("pake-authenticator", st);
+    switch (st) {
+      case ndnob::pake::Authenticator::State::Success:
+        return 0;
+      case ndnob::pake::Authenticator::State::Failure:
+        return 1;
+      default:
+        break;
     }
   }
 }

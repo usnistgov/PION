@@ -5,22 +5,12 @@
 #include <WiFi.h>
 #include <ndn-onboarding.h>
 
-#define NDNOB_LOG_ERR(fmt, ...) Serial.printf("%lu [ndnob.E] " fmt "\n", millis(), ##__VA_ARGS__)
-#define NDNOB_LOG_STATE(kind, value)                                                               \
-  do {                                                                                             \
-    static int prev = -1;                                                                          \
-    if (prev != (int)(value)) {                                                                    \
-      Serial.printf("%lu [ndnob.S.%s] %d\n", millis(), kind, (int)(value));                        \
-      prev = (int)(value);                                                                         \
-    }                                                                                              \
-  } while (false)
-
 namespace ndnob_device_app {
 
 enum class State
 {
   Idle,
-  WaitPassword,
+  MakePassword,
   WaitDirectConnect,
   WaitPake,
   WaitDirectDisconnect,
@@ -56,6 +46,12 @@ private:
 
 void
 loop();
+
+void
+doMakePassword();
+
+ndnph::tlv::Value
+getPassword();
 
 void
 doDirectConnect();
