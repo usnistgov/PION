@@ -18,7 +18,7 @@ loop()
       break;
     }
     case State::WaitDirectConnect: {
-      waitDirectConnect();
+      doDirectConnect();
       break;
     }
     case State::WaitPake: {
@@ -26,19 +26,29 @@ loop()
       break;
     }
     case State::WaitDirectDisconnect: {
-      waitDirectDisconnect();
+      doDirectDisconnect();
       break;
     }
     case State::WaitInfraConnect: {
+      doInfraConnect();
       break;
     }
     case State::WaitNdncert: {
+      waitNdncert();
       break;
     }
     case State::Success: {
-      break;
+      Serial.printf("%lu [ndnob.O.cert] ", millis());
+      Serial.println(getDeviceCert().getName());
+      // fallthrough
     }
     case State::Failure: {
+      deletePakeDevice();
+      deleteNdncert();
+      state = State::Final;
+      break;
+    }
+    case State::Final: {
       break;
     }
   }

@@ -21,8 +21,8 @@ public:
     /** @brief Authenticator certificate. */
     ndnph::Data cert;
 
-    /** @brief Authenticator private key. */
-    const ndnph::EcPrivateKey& pvt;
+    /** @brief Authenticator signer. */
+    const ndnph::PrivateKey& signer;
 
     /** @brief Network credential to be passed to the device. */
     ndnph::tlv::Value nc;
@@ -79,7 +79,7 @@ private:
 
   ndnph::Data m_caProfile;
   ndnph::Data m_cert;
-  const ndnph::EcPrivateKey& m_pvt;
+  const ndnph::PrivateKey& m_signer;
   ndnph::tlv::Value m_nc;
   ndnph::Name m_deviceName;
 

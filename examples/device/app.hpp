@@ -28,6 +28,7 @@ enum class State
   WaitNdncert,
   Success,
   Failure,
+  Final,
 };
 
 extern State state;
@@ -57,11 +58,34 @@ void
 loop();
 
 void
-waitDirectConnect();
+doDirectConnect();
+
 void
 waitPake();
+
 void
-waitDirectDisconnect();
+doDirectDisconnect();
+
+const ndnob::pake::Device*
+getPakeDevice();
+
+void
+deletePakeDevice();
+
+void
+doInfraConnect();
+
+void
+waitNdncert();
+
+void
+deleteNdncert();
+
+const ndnph::Data&
+getDeviceCert();
+
+const ndnph::PrivateKey&
+getDeviceSigner();
 
 } // namespace ndnob_device_app
 

@@ -13,9 +13,12 @@ main(int argc, char** argv)
 
   std::string ak = ndnph::cli::checkKeyChainId(argv[1]);
   auto cert = ndnph::cli::loadCertificate(region, ak + "_cert");
-  ndnph::EcPrivateKey pvt;
-  ndnph::EcPublicKey pub;
-  ndnph::cli::loadKey(region, ak + "_key", pvt, pub);
+  ndnph::EcPrivateKey signer;
+  {
+    ndnph::EcPublicKey pub;
+    ndnph::cli::loadKey(region, ak + "_key", signer, pub);
+    signer.setName(cert.getName());
+  }
 
   ndnph::Data caProfile = region.create<ndnph::Data>();
   {
@@ -30,7 +33,7 @@ main(int argc, char** argv)
     face : face,
     caProfile : caProfile,
     cert : cert,
-    pvt : pvt,
+    signer : signer,
     nc : ndnph::tlv::Value(),
     deviceName : ndnph::Name::parse(region, argv[3]),
   });

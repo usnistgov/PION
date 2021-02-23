@@ -157,7 +157,7 @@ Authenticator::Authenticator(const Options& opts)
   : PacketHandler(opts.face, 192)
   , m_caProfile(opts.caProfile)
   , m_cert(opts.cert)
-  , m_pvt(opts.pvt)
+  , m_signer(opts.signer)
   , m_nc(opts.nc)
   , m_deviceName(opts.deviceName)
   , m_pending(this)
@@ -300,7 +300,7 @@ Authenticator::handleConfirmResponse(ndnph::Data data)
   time_t now = time(nullptr);
   ndnph::ValidityPeriod validity(now, now + TempCertValidity::value);
   ndnph::Encoder encoder(m_region);
-  encoder.prepend(res.tPub.buildCertificate(region, subjectName, validity, m_pvt));
+  encoder.prepend(res.tPub.buildCertificate(region, subjectName, validity, m_signer));
   if (!encoder) {
     encoder.discard();
     return true;

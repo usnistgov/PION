@@ -12,43 +12,33 @@ static std::unique_ptr<esp8266ndn::BleServerTransport> transport;
 static std::unique_ptr<ndnph::Face> face;
 static std::unique_ptr<ndnob::pake::Device> device;
 
-static bool
-initDirectConnect()
+void
+doDirectConnect()
 {
+  GotoState gotoState;
+
 #if defined(NDNOB_DIRECT_WIFI)
   WiFi.persistent(false);
-  WiFi.mode(WIFI_AP);
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.disconnect();
   WiFi.softAP(NDNOB_DIRECT_AP_SSID, NDNOB_DIRECT_AP_PASS, 1, 0, 1);
+  while (WiFi.softAPgetStationNum() == 0) {
+    delay(100);
+  }
 
   transport.reset(new esp8266ndn::UdpTransport);
   if (!transport->beginListen(6363, WiFi.softAPIP())) {
     NDNOB_LOG_ERR("transport.beginListen error");
-    return false;
-  }
-
-  face.reset(new ndnph::Face(*transport));
-  return true;
-#else
-  return false;
-#endif
-}
-
-void
-waitDirectConnect()
-{
-  if (face == nullptr && !initDirectConnect()) {
-    state = State::Failure;
     return;
   }
 
-#if defined(NDNOB_DIRECT_WIFI)
-  if (WiFi.softAPgetStationNum() > 0) {
-    state = State::WaitPake;
-  }
+  face.reset(new ndnph::Face(*transport));
+
+  gotoState(State::WaitPake);
 #endif
 }
 
-bool
+static bool
 initPake()
 {
   device.reset(new ndnob::pake::Device(ndnob::pake::Device::Options{
@@ -75,12 +65,6 @@ waitPake()
   NDNOB_LOG_STATE("pake-device", deviceState);
   switch (deviceState) {
     case ndnob::pake::Device::State::Success: {
-      Serial.println(device->getCaProfile().prefix);
-      Serial.println(device->getDeviceName());
-      Serial.println(device->getTempCert().getName());
-      ndnph::DSigInfo si;
-      device->getTempSigner().updateSigInfo(si);
-      Serial.println(si.name);
       state = State::WaitDirectDisconnect;
       break;
     }
@@ -96,23 +80,34 @@ waitPake()
 }
 
 void
-waitDirectDisconnect()
+doDirectDisconnect()
 {
-  static int i = 0;
-  if (++i < 50) {
+  for (int i = 0; i < 20; ++i) {
     face->loop();
-    return;
+    delay(100);
   }
 
-  device.reset();
-  face.reset();
-  transport.reset();
 #if defined(NDNOB_DIRECT_WIFI)
   WiFi.softAPdisconnect(true);
+  delay(5000);
   state = State::WaitInfraConnect;
 #else
   state = State::Failure;
 #endif
+}
+
+const ndnob::pake::Device*
+getPakeDevice()
+{
+  return device.get();
+}
+
+void
+deletePakeDevice()
+{
+  device.reset();
+  face.reset();
+  transport.reset();
 }
 
 } // namespace ndnob_device_app
