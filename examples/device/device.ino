@@ -9,14 +9,14 @@ setup()
   esp8266ndn::setLogOutput(Serial);
 
   WiFi.persistent(false);
+  WiFi.mode(WIFI_STA);
   {
     uint8_t mac[6];
     ndnph::port::RandomSource::generate(mac, sizeof(mac));
     mac[0] &= ~0x01;
     mac[0] |= 0x02;
-    esp_wifi_set_mac(ESP_IF_WIFI_STA, mac);
+    esp_wifi_set_mac(WIFI_IF_STA, mac);
   }
-  WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   delay(100);
 }
