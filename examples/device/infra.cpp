@@ -4,8 +4,10 @@ namespace ndnob_device_app {
 
 #if defined(NDNOB_INFRA_UDP)
 static std::unique_ptr<esp8266ndn::UdpTransport> transport;
+static constexpr size_t NC_ITEMS = 3;
 #elif defined(NDNOB_INFRA_ETHER)
 static std::unique_ptr<esp8266ndn::EthernetTransport> transport;
+static constexpr size_t NC_ITEMS = 2;
 #else
 #error "need either NDNOB_INFRA_UDP or NDNOB_INFRA_ETHER"
 #endif
@@ -16,43 +18,43 @@ static ndnph::EcPublicKey pub;
 static std::unique_ptr<ndnph::ndncert::client::PossessionChallenge> challenge;
 static ndnph::Data oCert;
 
-static bool
-waitConnect()
-{
-  while (true) {
-    auto st = WiFi.status();
-    NDNOB_LOG_STATE("WiFi", st);
-    switch (st) {
-      case WL_CONNECTED:
-        return true;
-      case WL_NO_SSID_AVAIL:
-      case WL_CONNECT_FAILED:
-      case WL_CONNECTION_LOST:
-        return false;
-      default:
-        break;
-    }
-    delay(100);
-  }
-}
-
 void
 doInfraConnect()
 {
   GotoState gotoState;
 
-  WiFi.persistent(false);
+  char ncBuf[64];
+  std::array<const char*, NC_ITEMS> nc;
+  {
+    auto ncV = getPakeDevice()->getNetworkCredential();
+    if (ncV.size() + 1 >= sizeof(ncBuf)) {
+      NDNOB_LOG_ERR("NetworkCredential too long");
+      return;
+    }
+    std::copy(ncV.begin(), ncV.end(), ncBuf);
+    ncBuf[ncV.size()] = '\0';
+
+    for (size_t i = 0; i < nc.size(); ++i) {
+      nc[i] = strtok(i == 0 ? ncBuf : nullptr, "\n");
+      if (nc[i] == nullptr) {
+        NDNOB_LOG_ERR("NetworkCredential[%zu] missing", i);
+        return;
+      }
+    }
+  }
+
   WiFi.mode(WIFI_STA);
-  WiFi.begin(NDNOB_INFRA_STA_SSID, NDNOB_INFRA_STA_PASS);
-  if (!waitConnect()) {
-    NDNOB_LOG_ERR("WiFi.begin failure");
+  WiFi.begin(nc[0], nc[1]);
+  WiFi.waitForConnectResult();
+  if (!WiFi.isConnected()) {
+    NDNOB_LOG_ERR("WiFi.begin error %d", WiFi.status());
     return;
   }
 
 #if defined(NDNOB_INFRA_UDP)
   transport.reset(new esp8266ndn::UdpTransport);
   IPAddress remote;
-  if (!remote.fromString(NDNOB_INFRA_UDP_REMOTE)) {
+  if (!remote.fromString(nc[2])) {
     NDNOB_LOG_ERR("IPAddress.fromString error");
     return;
   }
@@ -60,10 +62,16 @@ doInfraConnect()
     NDNOB_LOG_ERR("transport.beginTunnel error");
     return;
   }
+#elif defined(NDNOB_INFRA_ETHER)
+  transport.reset(new esp8266ndn::EthernetTransport);
+  if (!transport->begin()) {
+    NDNOB_LOG_ERR("transport.begin error");
+    return;
+  }
+#endif
 
   face.reset(new ndnph::Face(*transport));
   gotoState(State::WaitNdncert);
-#endif
 }
 
 static void

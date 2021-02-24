@@ -49,6 +49,12 @@ public:
     return m_caProfile;
   }
 
+  const ndnph::tlv::Value& getNetworkCredential() const
+  {
+    assert(m_state == State::Success);
+    return m_networkCredential;
+  }
+
   const ndnph::Name& getDeviceName() const
   {
     assert(m_state == State::Success);

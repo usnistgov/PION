@@ -86,7 +86,7 @@ doDirectDisconnect()
 
 #if defined(NDNOB_DIRECT_WIFI)
   WiFi.softAPdisconnect(true);
-  delay(5000);
+  delay(4000);
   state = State::WaitInfraConnect;
 #else
   state = State::Failure;
