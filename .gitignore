@@ -1,4 +1,5 @@
 /.vscode
 /build*
+/NDNph
 /spake2-mbed
 /src/vendor/

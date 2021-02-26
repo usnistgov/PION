@@ -7,7 +7,7 @@ project('ndn-onboarding', 'cpp',
   ])
 
 NDNph = declare_dependency(
-  include_directories: '/usr/local/include',
+  include_directories: include_directories('/usr/local/include'),
   compile_args: ['-include', 'NDNph-config.h', '-DNDNPH_WANT_CLI']
 )
 

@@ -7,11 +7,15 @@
 
 #define NDNOB_LOG_FN(...) Serial.printf(__VA_ARGS__)
 #define NDNOB_LOG_NOW millis()
+#define NDNOB_LOG_FMT_NOW "%lu"
 
 #else
 
+#include <cinttypes>
+
 #define NDNOB_LOG_FN(...) fprintf(stderr, ##__VA_ARGS__)
 #define NDNOB_LOG_NOW ndnph::port::UnixTime::now()
+#define NDNOB_LOG_FMT_NOW "%" PRIu64
 
 #endif
 
@@ -21,7 +25,7 @@
  * @param fmt format string. It should end with "\n" if desired.
  */
 #define NDNOB_LOG_MSG(cat, fmt, ...)                                                               \
-  NDNOB_LOG_FN("%lu [ndnob." cat "] " fmt, NDNOB_LOG_NOW, ##__VA_ARGS__)
+  NDNOB_LOG_FN(NDNOB_LOG_FMT_NOW " [ndnob." cat "] " fmt, NDNOB_LOG_NOW, ##__VA_ARGS__)
 
 /** @brief Log an error message to console. */
 #define NDNOB_LOG_ERR(fmt, ...) NDNOB_LOG_MSG("E", fmt "\n", ##__VA_ARGS__)
