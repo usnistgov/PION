@@ -8,11 +8,11 @@ RUN mkdir -p /root/NDNph && \
     cd /root/NDNph && \
     meson build -Dunittest=disabled -Dprograms=enabled && \
     ninja -C build -j1 install && \
-    find ./build/programs -type f -maxdepth 1 | xargs install -t /usr/local/bin && \
+    find ./build/programs -maxdepth 1 -type f | xargs install -t /usr/local/bin && \
     rm -rf /root/NDNph
 ADD . /root/ndn-onboarding/
 RUN cd /root/ndn-onboarding && \
     meson build && \
     ninja -C build -j1 && \
-    find ./build/programs -type f -maxdepth 1 | xargs install -t /usr/local/bin && \
+    find ./build/programs -maxdepth 1 -type f | xargs install -t /usr/local/bin && \
     rm -rf build
