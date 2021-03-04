@@ -345,6 +345,7 @@ Device::sendFetchInterest(const ndnph::Name& name, State nextState)
     return;
   }
   interest.setName(name);
+  interest.setLifetime(InterestLifetime::value);
   m_pending.send(interest, WithEndpointId(m_lastInterestPacketInfo.endpointId)) &&
     gotoState(nextState);
 }

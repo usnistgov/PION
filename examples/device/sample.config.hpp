@@ -6,6 +6,7 @@
 
 #define NDNOB_DIRECT_AP_SSID "ndnob-direct"
 #define NDNOB_DIRECT_AP_PASS "ndnob-direct-password"
+#define NDNOB_DIRECT_BLE_NAME "ndnob-direct"
 
 #define NDNOB_INFRA_UDP
 // #define NDNOB_INFRA_ETHER

@@ -12,7 +12,8 @@ To install the program to a microcontroller:
 1. Install Arduino IDE, [Arduino core for the ESP32](https://github.com/espressif/arduino-esp32) v1.0.5, and [esp8266ndn](https://github.com/yoursunny/esp8266ndn) library
 2. Clone this repository to `$HOME/Arduino/libraries`
 3. Copy `sample.config.hpp` to `config.hpp`, and modify as necessary
-4. Flash the firmware as usual
+4. In Arduino Tools menu, select "Board: ESP32 Dev Module" and "Partition Scheme: No OTA (2MB APP/2MB FATFS)"
+5. Flash the firmware as usual
 
 ## Authenticator
 

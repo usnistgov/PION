@@ -51,6 +51,7 @@ public:
       return ndnph::Interest::Parameterized();
     }
     interest.setName(session.makeName(region, getPakeComponent()));
+    interest.setLifetime(InterestLifetime::value);
     return interest.parameterize(ndnph::tlv::Value(encoder));
   }
 };
@@ -103,6 +104,7 @@ public:
       return ndnph::Interest::Parameterized();
     }
     interest.setName(session.makeName(region, getConfirmComponent()));
+    interest.setLifetime(InterestLifetime::value);
     return interest.parameterize(ndnph::tlv::Value(outer));
   }
 };
@@ -149,6 +151,7 @@ public:
       return ndnph::Interest::Parameterized();
     }
     interest.setName(session.makeName(region, getCredentialComponent()));
+    interest.setLifetime(InterestLifetime::value);
     return interest.parameterize(encrypted);
   }
 };

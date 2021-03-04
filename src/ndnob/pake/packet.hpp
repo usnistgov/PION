@@ -186,6 +186,8 @@ computeTempSubjectName(ndnph::Region& region, ndnph::Name authenticatorCertName,
 
 using TempCertValidity = std::integral_constant<int, 300>;
 
+using InterestLifetime = std::integral_constant<int, 10000>;
+
 } // namespace pake
 } // namespace ndnob
 

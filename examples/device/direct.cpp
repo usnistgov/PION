@@ -2,10 +2,28 @@
 
 namespace ndnob_device_app {
 
+class FragReass
+{
+public:
+  explicit FragReass(ndnph::Face& face, uint16_t mtu)
+    : m_fragmenter(m_region, mtu)
+    , m_reassembler(m_region)
+  {
+    face.setFragmenter(m_fragmenter);
+    face.setReassembler(m_reassembler);
+  }
+
+private:
+  ndnph::StaticRegion<1200> m_region;
+  ndnph::lp::Fragmenter m_fragmenter;
+  ndnph::lp::Reassembler m_reassembler;
+};
+
 #if defined(NDNOB_DIRECT_WIFI)
 static std::unique_ptr<esp8266ndn::UdpTransport> transport;
 #elif defined(NDNOB_DIRECT_BLE)
 static std::unique_ptr<esp8266ndn::BleServerTransport> transport;
+static std::unique_ptr<FragReass> fragReass;
 #else
 #error "need either NDNOB_DIRECT_WIFI or NDNOB_DIRECT_BLE"
 #endif
@@ -19,6 +37,9 @@ doDirectConnect()
 
 #if defined(NDNOB_DIRECT_WIFI)
   WiFi.softAP(NDNOB_DIRECT_AP_SSID, NDNOB_DIRECT_AP_PASS, 1, 0, 1);
+  NDNOB_LOG_MSG("O.WiFi-BSSID", "");
+  Serial.println(WiFi.softAPmacAddress());
+
   while (WiFi.softAPgetStationNum() == 0) {
     delay(100);
   }
@@ -28,11 +49,27 @@ doDirectConnect()
     NDNOB_LOG_ERR("transport.beginListen error");
     return;
   }
+#elif defined(NDNOB_DIRECT_BLE)
+  transport.reset(new esp8266ndn::BleServerTransport);
+  if (!transport->begin(NDNOB_DIRECT_BLE_NAME)) {
+    NDNOB_LOG_ERR("transport.begin error");
+    return;
+  }
+
+  NDNOB_LOG_MSG("O.BLE-MAC", "");
+  Serial.println(transport->getAddr());
+  NDNOB_LOG_MSG("O.BLE-MTU", "%d\n", static_cast<int>(transport->getMtu()));
+
+  while (!transport->isUp()) {
+    delay(100);
+  }
+#endif
 
   face.reset(new ndnph::Face(*transport));
-
-  gotoState(State::WaitPake);
+#if defined(NDNOB_DIRECT_BLE)
+  fragReass.reset(new FragReass(*face, transport->getMtu()));
 #endif
+  gotoState(State::WaitPake);
 }
 
 static bool
@@ -83,14 +120,19 @@ doDirectDisconnect()
     face->loop();
     delay(100);
   }
+  face->removeHandler(*device);
+  face.reset();
 
 #if defined(NDNOB_DIRECT_WIFI)
   WiFi.softAPdisconnect(true);
   delay(4000);
-  state = State::WaitInfraConnect;
-#else
-  state = State::Failure;
+#elif defined(NDNOB_DIRECT_BLE)
+  ::BLEDevice::deinit(true);
+  fragReass.reset();
 #endif
+
+  transport.reset();
+  state = State::WaitInfraConnect;
 }
 
 const ndnob::pake::Device*
@@ -103,8 +145,6 @@ void
 deletePakeDevice()
 {
   device.reset();
-  face.reset();
-  transport.reset();
 }
 
 } // namespace ndnob_device_app

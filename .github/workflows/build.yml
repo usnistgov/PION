@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: Pesa/spake2-mbed
-          ref: cf3bf38739379cb5a1e7ad2536534e6af5506fe3
+          ref: 25af4f567b57dd8634050e77dcd8769d8cc8f306
           token: ${{ secrets.GH_PAT }}
           path: spake2-mbed
       - run: mk/update-vendor.sh
@@ -78,7 +78,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: Pesa/spake2-mbed
-          ref: d8d3f79b9cef54d8621d383e20b5482cf88187a5
+          ref: 25af4f567b57dd8634050e77dcd8769d8cc8f306
           token: ${{ secrets.GH_PAT }}
           path: spake2-mbed
       - run: mk/update-vendor.sh
