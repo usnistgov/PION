@@ -2,7 +2,7 @@ import { closeUplinks, openKeyChain, openUplinks } from "@ndn/cli-common";
 import { Certificate, generateSigningKey } from "@ndn/keychain";
 import { CaProfile } from "@ndn/ndncert";
 import { Data, Name } from "@ndn/packet";
-import { DataStore, PrefixRegShorter, RepoProducer } from "@ndn/repo";
+import { DataStore, PrefixRegStatic, RepoProducer } from "@ndn/repo";
 import { Decoder, Encoder } from "@ndn/tlv";
 import strattadbEnvironment from "@strattadb/environment";
 import dotenv from "dotenv";
@@ -32,15 +32,14 @@ export const env = makeEnv({
   },
 });
 
+export const networkPrefix = new Name(env.networkPrefix);
+
 export const repo = new DataStore(leveldown(env.repo));
 
-const repoProducer = RepoProducer.create(repo, {
-  reg: PrefixRegShorter(2),
-});
+/** @type {RepoProducer} */
+let repoProducer;
 
 export const keyChain = openKeyChain();
-
-export const networkPrefix = new Name(env.networkPrefix);
 
 /** @type {import("@ndn/ndncert").CaProfile} */
 export let aProfile;
@@ -53,6 +52,9 @@ export let aVerifier;
 
 export async function initEnv() {
   await openUplinks();
+  repoProducer = RepoProducer.create(repo, {
+    reg: PrefixRegStatic(networkPrefix),
+  });
 
   try {
     const profileData = new Decoder(await fs.readFile(env.profile)).decode(Data);
@@ -81,7 +83,7 @@ export async function initEnv() {
 }
 
 process.once("beforeExit", async () => {
-  repoProducer.close();
+  repoProducer?.close();
   await repo.close();
   await closeUplinks();
 });
