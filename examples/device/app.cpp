@@ -3,11 +3,20 @@
 namespace ndnob_device_app {
 
 State state = State::Idle;
+uint32_t minFreeHeap = std::numeric_limits<uint32_t>::max();
 
 void
 loop()
 {
-  NDNOB_LOG_STATE("app", state);
+  {
+    uint32_t freeHeap = ESP.getFreeHeap();
+    minFreeHeap = std::min(minFreeHeap, freeHeap);
+    if (NDNOB_LOG_STATE("app", state)) {
+      NDNOB_LOG_MSG("H.free-prev-state", "%u\n", minFreeHeap);
+      minFreeHeap = freeHeap;
+    }
+  }
+
   switch (state) {
     case State::Idle: {
       state = State::MakePassword;
@@ -45,6 +54,7 @@ loop()
     case State::Failure: {
       deletePakeDevice();
       deleteNdncert();
+      NDNOB_LOG_MSG("H.free-final", "%u\n", ESP.getFreeHeap());
       state = State::Final;
       break;
     }

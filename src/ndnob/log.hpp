@@ -38,12 +38,14 @@
  * This macro contains a global variable, so it is unsuitable for per-instance state.
  */
 #define NDNOB_LOG_STATE(kind, value)                                                               \
-  do {                                                                                             \
+  __extension__({                                                                                  \
     static int prev = -1;                                                                          \
-    if (prev != (int)(value)) {                                                                    \
+    bool changed = prev != (int)(value);                                                           \
+    if (changed) {                                                                                 \
       NDNOB_LOG_MSG("S.%s", "%d\n", kind, (int)(value));                                           \
       prev = (int)(value);                                                                         \
     }                                                                                              \
-  } while (false)
+    changed;                                                                                       \
+  })
 
 #endif // NDNOB_LOG_HPP

@@ -6,6 +6,9 @@ setup()
 {
   Serial.begin(115200);
   Serial.println();
+  NDNOB_LOG_MSG("H.total", "%u\n", ESP.getHeapSize());
+  NDNOB_LOG_MSG("H.free-initial", "%u\n", ESP.getFreeHeap());
+
   esp8266ndn::setLogOutput(Serial);
 
   WiFi.persistent(false);
