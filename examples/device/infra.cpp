@@ -44,6 +44,7 @@ doInfraConnect()
   }
 
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
   WiFi.begin(nc[0], nc[1]);
   WiFi.waitForConnectResult();
   if (!WiFi.isConnected()) {
