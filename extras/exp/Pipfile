@@ -1,0 +1,14 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pyserial = "~=3.5"
+
+[dev-packages]
+autopep8 = "*"
+isort = "*"
+
+[scripts]
+lint = "sh -c 'isort *.py && autopep8 -i *.py'"

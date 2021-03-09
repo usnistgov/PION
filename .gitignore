@@ -1,5 +1,10 @@
-/.vscode
+.env
+.vscode
 /build*
-/NDNph
+/extras/*/runtime
 /spake2-mbed
 /src/vendor/
+Pipfile.lock
+node_modules
+package-lock.json
+pnpm-lock.yaml

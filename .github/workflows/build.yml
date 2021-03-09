@@ -104,19 +104,27 @@ jobs:
           done
         env:
           FQBN: esp32:esp32:heltec_wifi_kit_32
-  ca:
+  node:
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        subdir:
+          - ./extras/ca
+          - ./extras/exp
+    defaults:
+      run:
+        working-directory: ${{ matrix.subdir }}
     steps:
       - uses: actions/setup-node@v2
         with:
           node-version: '15'
       - uses: actions/checkout@v2
-      - run: npm install
-        working-directory: ./extras/ca
+      - name: install dependencies
+        run: |
+          npm install -g pnpm
+          npm run pnpm-install
       - name: check code style
         run: |
           npm run lint
           [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
-        working-directory: ./extras/ca
       - run: npm run typecheck
-        working-directory: ./extras/ca

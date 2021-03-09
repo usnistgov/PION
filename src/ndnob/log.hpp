@@ -14,7 +14,7 @@
 #include <cinttypes>
 
 #define NDNOB_LOG_FN(...) fprintf(stderr, ##__VA_ARGS__)
-#define NDNOB_LOG_NOW ndnph::port::UnixTime::now()
+#define NDNOB_LOG_NOW (ndnph::port::UnixTime::now() / 1000)
 #define NDNOB_LOG_FMT_NOW "%" PRIu64
 
 #endif
