@@ -72,7 +72,7 @@ export class Device extends Emittery<Events> {
 
   public password = "";
   public wifiBssid = "";
-  public bleMac = "";
+  public bleAddr = "";
   public bleMtu = 0;
   public certName = "";
 
@@ -114,9 +114,13 @@ export class Device extends Emittery<Events> {
         case "O.WiFi-BSSID":
           this.wifiBssid = l.value;
           break;
-        case "O.BLE-MAC":
-          this.bleMac = l.value;
+        case "O.BLE-MAC": {
+          const m = /[\da-f:]{17}/.exec(l.value);
+          if (m) {
+            this.bleAddr = m[0]!;
+          }
           break;
+        }
         case "O.BLE-MTU":
           this.bleMtu = l.int;
           break;

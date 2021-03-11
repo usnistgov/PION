@@ -59,6 +59,11 @@ export const env = makeEnv({
     parser: parsers.positiveInteger,
     required: true,
   },
+  directBleBridgePath: {
+    envVarName: "NDNOB_DIRECT_BLE_BRIDGE_PATH",
+    parser: parsers.string,
+    required: true,
+  },
   infraWifiNetif: {
     envVarName: "NDNOB_INFRA_WIFI_NETIF",
     parser: parsers.string,

@@ -1,5 +1,7 @@
 import execa from "execa";
 
+import type { DirectConnection } from "./direct-connection";
+
 async function waitLinkUp(netif: string): Promise<void> {
   for (let i = 0; i < 100; ++i) {
     const result = await execa("ip", ["-j", "link", "show", netif]);
@@ -31,35 +33,36 @@ async function setLocalIp(netif: string, localIp: string): Promise<void> {
 setLocalIp.once = new Map<string, string>();
 
 /** Control a WiFi station interface. */
-export class WifiStation {
-  private wpaCliArgs: string[] = [];
+export class WifiStation implements DirectConnection {
+  private readonly wpaCliArgs: string[];
+  private readonly netif: string;
+  private readonly ssid: string;
+  private readonly passphrase: string;
+  private readonly localIp: string;
   private wpaNetwork = "";
+
+  constructor({ ctrl, netif, ssid, passphrase, localIp }: WifiClient.Options) {
+    this.wpaCliArgs = [`-p${ctrl}`, `-i${netif}`];
+    this.netif = netif;
+    this.ssid = ssid;
+    this.passphrase = passphrase;
+    this.localIp = localIp;
+  }
 
   private async wpaCli(...args: string[]): Promise<string> {
     const result = await execa("wpa_cli", this.wpaCliArgs.concat(args));
     return result.stdout;
   }
 
-  public async connect({ ctrl, netif, ssid, passphrase, localIp }: WifiClient.Options) {
-    this.wpaCliArgs = [`-p${ctrl}`, `-i${netif}`];
+  public async connect() {
+    this.wpaNetwork = await this.wpaCli("add_network");
+    await this.wpaCli("set_network", this.wpaNetwork, "ssid", `"${this.ssid}"`);
+    await this.wpaCli("set_network", this.wpaNetwork, "psk", `"${this.passphrase}"`);
+    await this.wpaCli("select_network", this.wpaNetwork);
+    await waitLinkUp(this.netif);
 
-    let ok = false;
-
-    try {
-      this.wpaNetwork = await this.wpaCli("add_network");
-      await this.wpaCli("set_network", this.wpaNetwork, "ssid", `"${ssid}"`);
-      await this.wpaCli("set_network", this.wpaNetwork, "psk", `"${passphrase}"`);
-      await this.wpaCli("select_network", this.wpaNetwork);
-      await waitLinkUp(netif);
-
-      await disablePowerSave(netif);
-      await setLocalIp(netif, localIp);
-      ok = true;
-    } finally {
-      if (!ok) {
-        await this.disconnect();
-      }
-    }
+    await disablePowerSave(this.netif);
+    await setLocalIp(this.netif, this.localIp);
   }
 
   public async disconnect() {

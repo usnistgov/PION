@@ -8,13 +8,14 @@ export class Dumpcap {
   public pcap?: Buffer;
 
   /** Start packet capture. */
-  constructor(netif: string) {
+  constructor(netif: string, filter?: string) {
     this.child = execa("dumpcap", [
       "-i", netif, // capture interface
       "-p", // no promiscuous mode
       "-P", // save as pcap instead of pcapng
       "-q", // don't display continuous packet count
       "-w", "-", // output to stdout
+      ...(filter ? ["-f", filter] : []), // filter
     ], {
       encoding: null,
       stdin: "ignore",

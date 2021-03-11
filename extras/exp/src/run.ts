@@ -1,7 +1,9 @@
 import pDefer, { DeferredPromise } from "p-defer";
 
 import { Authenticator } from "./authenticator";
+import { BleBridge } from "./ble-bridge";
 import { AppState, Device } from "./device";
+import type { DirectConnection } from "./direct-connection";
 import { Dumpcap } from "./dumpcap";
 import { env } from "./env";
 import { WifiStation } from "./wifi-station";
@@ -15,9 +17,10 @@ export class Run {
   private l!: Console;
   private defer!: DeferredPromise<Run.Result>;
   private device?: Device;
-  private authenticator?: Authenticator;
-  private directWifi?: WifiStation;
   private directDump?: Dumpcap;
+  private directConn?: DirectConnection;
+  private authenticatorConn?: Pick<Authenticator.Options, "deviceIp"|"devicePort"|"mtu">;
+  private authenticator?: Authenticator;
   private infraDump?: Dumpcap;
 
   public run({
@@ -64,26 +67,40 @@ export class Run {
       this.directDump = new Dumpcap(env.directWifiNetif);
       await delay(500);
 
-      this.directWifi = new WifiStation();
-      await this.directWifi.connect({
+      this.directConn = new WifiStation({
         ctrl: env.directWifiWpaCtrl,
         netif: env.directWifiNetif,
         ssid: env.directWifiSsid,
         passphrase: env.directWifiPassphrase,
         localIp: `${env.directWifiAuthIp}/${env.directWifiSubnet}`,
       });
+
+      this.authenticatorConn = {
+        deviceIp: env.directWifiDeviceIp,
+        devicePort: 6363,
+        mtu: undefined,
+      };
     } else if (this.device!.program.includes("direct-ble")) {
-      throw new Error("direct=ble not implemented");
+      this.directDump = new Dumpcap("lo", `host ${BleBridge.IP}`);
+      await delay(500);
+
+      this.directConn = new BleBridge(this.device!.bleAddr, env.directBleBridgePath);
+
+      this.authenticatorConn = {
+        deviceIp: BleBridge.IP,
+        devicePort: BleBridge.PORT,
+        mtu: this.device!.bleMtu,
+      };
     } else {
       throw new Error("unknown direct connection method");
     }
+
+    await this.directConn.connect();
   }
 
   private startAuthenticator(): void {
     this.authenticator = new Authenticator({
-      deviceIp: env.directWifiDeviceIp,
-      devicePort: 6363,
-      mtu: undefined,
+      ...this.authenticatorConn!,
       keychain: env.keychain,
       caProfile: env.caProfile,
       deviceName: `${env.networkPrefix}/d${Date.now()}`,
@@ -96,7 +113,7 @@ export class Run {
   }
 
   private async directDisconnect(): Promise<void> {
-    await this.directWifi?.disconnect();
+    await this.directConn?.disconnect();
   }
 
   private startInfraDump(): void {
@@ -106,7 +123,7 @@ export class Run {
   private cleanup = async () => {
     this.device?.close();
     this.authenticator?.close();
-    await this.directWifi?.disconnect();
+    await this.directConn?.disconnect();
     await this.directDump?.close();
     await this.infraDump?.close();
   };
