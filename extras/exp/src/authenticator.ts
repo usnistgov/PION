@@ -8,9 +8,11 @@ interface Events {
   finish: undefined;
 }
 
+/** Control the authenticator program. */
 export class Authenticator extends Emittery<Events> {
   private readonly child: ExecaChildProcess<Buffer>;
 
+  /** Start the authenticator. */
   constructor(opts: Authenticator.Options) {
     super();
     this.child = execa("ndnob-authenticator", [
@@ -23,8 +25,8 @@ export class Authenticator extends Emittery<Events> {
       buffer: false,
       encoding: null,
       stdin: "ignore",
-      stdout: "pipe",
-      stderr: "inherit",
+      stdout: "ignore",
+      stderr: "pipe",
       env: {
         NDNPH_UPLINK_UDP: opts.deviceIp,
         NDNPH_UPLINK_UDP_PORT: opts.devicePort.toString(),
@@ -36,21 +38,28 @@ export class Authenticator extends Emittery<Events> {
     this.child.on("error", (err) => {
       void this.emit("error", err);
     });
-    void this.handleStdout();
+    void this.handleStderr();
   }
 
-  public readonly output: string[] = [];
+  public readonly logs: string[] = [];
 
-  private async handleStdout() {
-    for await (const line of byline(this.child.stdout!, { encoding: "utf-8" }) as AsyncIterable<string>) {
-      this.output.push(line);
+  private async handleStderr() {
+    for await (const line of byline(this.child.stderr!, { encoding: "utf-8" }) as AsyncIterable<string>) {
+      this.logs.push(line);
       void this.emit("line", line);
     }
     void this.emit("finish");
   }
 
+  /** Kill the authenticator. */
   public close(): void {
     this.child.kill();
+  }
+
+  public get result(): Authenticator.Result {
+    return {
+      logs: this.logs,
+    };
   }
 }
 
@@ -65,5 +74,9 @@ export namespace Authenticator {
     deviceName: string;
     networkCredential: string;
     pakePassword: string;
+  }
+
+  export interface Result {
+    logs: string[];
   }
 }

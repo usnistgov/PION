@@ -30,7 +30,8 @@ async function setLocalIp(netif: string, localIp: string): Promise<void> {
 }
 setLocalIp.once = new Map<string, string>();
 
-export class WifiClient {
+/** Control a WiFi station interface. */
+export class WifiStation {
   private wpaCliArgs: string[] = [];
   private wpaNetwork = "";
 

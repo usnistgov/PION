@@ -59,6 +59,11 @@ export const env = makeEnv({
     parser: parsers.positiveInteger,
     required: true,
   },
+  infraWifiNetif: {
+    envVarName: "NDNOB_INFRA_WIFI_NETIF",
+    parser: parsers.string,
+    required: true,
+  },
   infraWifiSsid: {
     envVarName: "NDNOB_INFRA_WIFI_SSID",
     parser: parsers.string,

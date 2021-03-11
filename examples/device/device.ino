@@ -6,6 +6,18 @@ setup()
 {
   Serial.begin(115200);
   Serial.println();
+  NDNOB_LOG_MSG("O.program", "%s %s\n",
+#if defined(NDNOB_DIRECT_WIFI)
+                "direct-wifi",
+#elif defined(NDNOB_DIRECT_BLE)
+                "direct-ble",
+#endif
+#if defined(NDNOB_INFRA_UDP)
+                "infra-udp"
+#elif defined(NDNOB_INFRA_ETHER)
+                "infra-ether"
+#endif
+  );
   NDNOB_LOG_MSG("H.total", "%u\n", ESP.getHeapSize());
   NDNOB_LOG_MSG("H.free-initial", "%u\n", ESP.getFreeHeap());
 
