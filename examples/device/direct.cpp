@@ -72,6 +72,7 @@ doDirectConnect()
   gotoState(State::WaitPake);
 }
 
+#ifndef NDNOB_SKIP_PAKE
 static bool
 initPake()
 {
@@ -84,12 +85,14 @@ initPake()
   }
   return true;
 }
+#endif // NDNOB_SKIP_PAKE
 
 void
 waitPake()
 {
   face->loop();
 
+#ifndef NDNOB_SKIP_PAKE
   if (device == nullptr && !initPake()) {
     state = State::Failure;
     return;
@@ -111,6 +114,9 @@ waitPake()
       break;
     }
   }
+#else
+  state = State::WaitDirectDisconnect;
+#endif // NDNOB_SKIP_PAKE
 }
 
 void
@@ -120,7 +126,9 @@ doDirectDisconnect()
     face->loop();
     delay(100);
   }
+#ifndef NDNOB_SKIP_PAKE
   face->removeHandler(*device);
+#endif
   face.reset();
 
 #if defined(NDNOB_DIRECT_WIFI)

@@ -1,5 +1,9 @@
 #include "app.hpp"
 
+#if defined(NDNOB_SKIP_PAKE) && !defined(NDNOB_SKIP_NDNCERT)
+#error "NDNOB_SKIP_NDNCERT must be defined if NDNOB_SKIP_PAKE is defined"
+#endif
+
 namespace ndnob_device_app {
 
 #if defined(NDNOB_INFRA_UDP)
@@ -26,6 +30,7 @@ doInfraConnect()
   char ncBuf[64];
   std::array<const char*, NC_ITEMS> nc;
   {
+#ifndef NDNOB_SKIP_PAKE
     auto ncV = getPakeDevice()->getNetworkCredential();
     if (ncV.size() + 1 >= sizeof(ncBuf)) {
       NDNOB_LOG_ERR("NetworkCredential too long");
@@ -33,6 +38,11 @@ doInfraConnect()
     }
     std::copy(ncV.begin(), ncV.end(), ncBuf);
     ncBuf[ncV.size()] = '\0';
+#else
+    static_assert(sizeof(NDNOB_INFRA_NC) + 1 < sizeof(ncBuf), "");
+    std::copy_n(NDNOB_INFRA_NC, sizeof(NDNOB_INFRA_NC), ncBuf);
+    ncBuf[sizeof(NDNOB_INFRA_NC)] = '\0';
+#endif
 
     for (size_t i = 0; i < nc.size(); ++i) {
       nc[i] = strtok(i == 0 ? ncBuf : nullptr, "\n");
@@ -74,6 +84,8 @@ doInfraConnect()
   face.reset(new ndnph::Face(*transport));
   gotoState(State::WaitNdncert);
 }
+
+#ifndef NDNOB_SKIP_NDNCERT
 
 static void
 ndncertCallback(void*, ndnph::Data cert)
@@ -119,15 +131,21 @@ initNdncert()
   return true;
 }
 
+#endif // NDNOB_SKIP_NDNCERT
+
 void
 waitNdncert()
 {
   face->loop();
 
+#ifndef NDNOB_SKIP_NDNCERT
   if (challenge == nullptr && !initNdncert()) {
     state = State::Failure;
     return;
   }
+#else
+  state = State::Failure;
+#endif
 }
 
 void
