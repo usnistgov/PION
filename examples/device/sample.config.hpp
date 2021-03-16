@@ -2,8 +2,8 @@
 #define NDNOB_DEVICE_CONFIG_HPP
 
 // select direct transport
-// #define NDNOB_DIRECT_WIFI
-#define NDNOB_DIRECT_BLE
+#define NDNOB_DIRECT_WIFI
+// #define NDNOB_DIRECT_BLE
 
 // hard-coded direct transport credentials
 #define NDNOB_DIRECT_AP_SSID "ndnob-direct"
@@ -11,8 +11,8 @@
 #define NDNOB_DIRECT_BLE_NAME "ndnob-direct"
 
 // select infrastructure transport
-// #define NDNOB_INFRA_UDP
-#define NDNOB_INFRA_ETHER
+#define NDNOB_INFRA_UDP
+// #define NDNOB_INFRA_ETHER
 
 // skip steps, for code size measurement
 // #define NDNOB_SKIP_PAKE

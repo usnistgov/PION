@@ -6,4 +6,5 @@ It contains three components corresponding to the roles defined in the protocol:
 ## Documentation
 
 * [NDN-onboarding installation guide](docs/INSTALL.md)
+* [experiment system setup](docs/expsetup.md)
 * [firmware size measurement](docs/size.md)
