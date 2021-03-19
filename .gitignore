@@ -2,6 +2,7 @@
 .vscode
 /build*
 /extras/*/runtime
+/extras/firmware-sizes.ndjson
 /spake2-mbed
 /src/vendor/
 Pipfile.lock
