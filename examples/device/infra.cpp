@@ -21,35 +21,33 @@ static ndnph::EcPrivateKey pvt;
 static ndnph::EcPublicKey pub;
 static std::unique_ptr<ndnph::ndncert::client::PossessionChallenge> challenge;
 static ndnph::Data oCert;
+static std::unique_ptr<ndnph::PingServer> pingServer;
 
 void
 doInfraConnect()
 {
   GotoState gotoState;
 
-  char ncBuf[64];
+  char ncBuf[64] = { 0 };
   std::array<const char*, NC_ITEMS> nc;
   {
 #ifndef NDNOB_SKIP_PAKE
     auto ncV = getPakeDevice()->getNetworkCredential();
+#else
+    auto ncV = ndnph::tlv::Value::fromString(NDNOB_INFRA_NC);
+#endif
     if (ncV.size() + 1 >= sizeof(ncBuf)) {
       NDNOB_LOG_ERR("NetworkCredential too long");
       return;
     }
     std::copy(ncV.begin(), ncV.end(), ncBuf);
-    ncBuf[ncV.size()] = '\0';
-#else
-    static_assert(sizeof(NDNOB_INFRA_NC) + 1 < sizeof(ncBuf), "");
-    std::copy_n(NDNOB_INFRA_NC, sizeof(NDNOB_INFRA_NC), ncBuf);
-    ncBuf[sizeof(NDNOB_INFRA_NC)] = '\0';
-#endif
+  }
 
-    for (size_t i = 0; i < nc.size(); ++i) {
-      nc[i] = strtok(i == 0 ? ncBuf : nullptr, "\n");
-      if (nc[i] == nullptr) {
-        NDNOB_LOG_ERR("NetworkCredential[%zu] missing", i);
-        return;
-      }
+  for (size_t i = 0; i < nc.size(); ++i) {
+    nc[i] = strtok(i == 0 ? ncBuf : nullptr, "\n");
+    if (nc[i] == nullptr) {
+      NDNOB_LOG_ERR("NetworkCredential[%zu] missing", i);
+      return;
     }
   }
 
@@ -144,6 +142,7 @@ waitNdncert()
     return;
   }
 #else
+  ndnph::ec::generate(oRegion, ndnph::Name::parse(oRegion, NDNOB_PING_NAME), pvt, pub);
   state = State::Failure;
 #endif
 }
@@ -164,6 +163,22 @@ const ndnph::PrivateKey&
 getDeviceSigner()
 {
   return pvt;
+}
+
+static void
+initPingServer()
+{
+  pingServer.reset(
+    new ndnph::PingServer(ndnph::certificate::toSubjectName(oRegion, pvt.getName()), *face, pvt));
+}
+
+void
+runPingServer()
+{
+  if (pingServer == nullptr) {
+    initPingServer();
+  }
+  face->loop();
 }
 
 } // namespace ndnob_device_app

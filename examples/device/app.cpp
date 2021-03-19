@@ -59,6 +59,7 @@ loop()
       break;
     }
     case State::Final: {
+      runPingServer();
       break;
     }
   }

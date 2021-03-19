@@ -83,6 +83,9 @@ getDeviceCert();
 const ndnph::PrivateKey&
 getDeviceSigner();
 
+void
+runPingServer();
+
 } // namespace ndnob_device_app
 
 #endif // NDNOB_DEVICE_APP_HPP

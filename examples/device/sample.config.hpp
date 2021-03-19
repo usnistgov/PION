@@ -21,4 +21,7 @@
 // infrastructure network credentials, used when NDNOB_SKIP_PAKE
 #define NDNOB_INFRA_NC "ndnob\nndnob-infra-password\n192.168.36.1"
 
+// ping server name, used when NDNOB_SKIP_NDNCERT
+#define NDNOB_PING_NAME "/ndnob/device"
+
 #endif // NDNOB_DEVICE_CONFIG_HPP
