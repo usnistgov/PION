@@ -19,7 +19,7 @@ doMakePassword()
       ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")[passwordV[i] % 0x40];
   }
 
-  NDNOB_LOG_MSG("O.password", "%s\n", reinterpret_cast<const char*>(passwordV));
+  NDNPH_LOG_LINE("ndnob.O.password", "%s", reinterpret_cast<const char*>(passwordV));
   gotoState(State::WaitDirectConnect);
 }
 

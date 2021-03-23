@@ -15,6 +15,7 @@ static constexpr size_t NC_ITEMS = 2;
 #else
 #error "need either NDNOB_INFRA_UDP or NDNOB_INFRA_ETHER"
 #endif
+static std::unique_ptr<ndnph::transport::Tracer> transportTracer;
 static std::unique_ptr<ndnph::Face> face;
 static ndnph::StaticRegion<2048> oRegion;
 static ndnph::EcPrivateKey pvt;
@@ -79,7 +80,8 @@ doInfraConnect()
   }
 #endif
 
-  face.reset(new ndnph::Face(*transport));
+  transportTracer.reset(new ndnph::transport::Tracer(*transport, "ndnob.T.infra"));
+  face.reset(new ndnph::Face(*transportTracer));
   gotoState(State::WaitNdncert);
 }
 

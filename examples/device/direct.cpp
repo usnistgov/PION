@@ -27,6 +27,7 @@ static std::unique_ptr<FragReass> fragReass;
 #else
 #error "need either NDNOB_DIRECT_WIFI or NDNOB_DIRECT_BLE"
 #endif
+static std::unique_ptr<ndnph::transport::Tracer> transportTracer;
 static std::unique_ptr<ndnph::Face> face;
 static std::unique_ptr<ndnob::pake::Device> device;
 
@@ -37,7 +38,7 @@ doDirectConnect()
 
 #if defined(NDNOB_DIRECT_WIFI)
   WiFi.softAP(NDNOB_DIRECT_AP_SSID, NDNOB_DIRECT_AP_PASS, 1, 0, 1);
-  NDNOB_LOG_MSG("O.WiFi-BSSID", "");
+  NDNPH_LOG_MSG("ndnob.O.WiFi-BSSID", "");
   Serial.println(WiFi.softAPmacAddress());
 
   while (WiFi.softAPgetStationNum() == 0) {
@@ -56,16 +57,17 @@ doDirectConnect()
     return;
   }
 
-  NDNOB_LOG_MSG("O.BLE-MAC", "");
+  NDNPH_LOG_MSG("ndnob.O.BLE-MAC", "");
   Serial.println(transport->getAddr());
-  NDNOB_LOG_MSG("O.BLE-MTU", "%d\n", static_cast<int>(transport->getMtu()));
+  NDNPH_LOG_LINE("ndnob.O.BLE-MTU", "%d\n", static_cast<int>(transport->getMtu()));
 
   while (!transport->isUp()) {
     delay(100);
   }
 #endif
 
-  face.reset(new ndnph::Face(*transport));
+  transportTracer.reset(new ndnph::transport::Tracer(*transport, "ndnob.T.direct"));
+  face.reset(new ndnph::Face(*transportTracer));
 #if defined(NDNOB_DIRECT_BLE)
   fragReass.reset(new FragReass(*face, transport->getMtu()));
 #endif
@@ -139,6 +141,7 @@ doDirectDisconnect()
   fragReass.reset();
 #endif
 
+  transportTracer.reset();
   transport.reset();
   state = State::WaitInfraConnect;
 }

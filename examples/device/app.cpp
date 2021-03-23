@@ -12,7 +12,7 @@ loop()
     uint32_t freeHeap = ESP.getFreeHeap();
     minFreeHeap = std::min(minFreeHeap, freeHeap);
     if (NDNOB_LOG_STATE("app", state)) {
-      NDNOB_LOG_MSG("H.free-prev-state", "%u\n", minFreeHeap);
+      NDNPH_LOG_LINE("ndnob.H.free-prev-state", "%u", minFreeHeap);
       minFreeHeap = freeHeap;
     }
   }
@@ -47,14 +47,14 @@ loop()
       break;
     }
     case State::Success: {
-      NDNOB_LOG_MSG("O.cert", "");
+      NDNPH_LOG_MSG("ndnob.O.cert", "");
       Serial.println(getDeviceCert().getName());
       // fallthrough
     }
     case State::Failure: {
       deletePakeDevice();
       deleteNdncert();
-      NDNOB_LOG_MSG("H.free-final", "%u\n", ESP.getFreeHeap());
+      NDNPH_LOG_LINE("ndnob.H.free-final", "%u", ESP.getFreeHeap());
       state = State::Final;
       break;
     }

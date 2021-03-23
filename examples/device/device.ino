@@ -6,20 +6,20 @@ setup()
 {
   Serial.begin(115200);
   Serial.println();
-  NDNOB_LOG_MSG("O.program", "%s %s\n",
+  NDNPH_LOG_LINE("ndnob.O.program", "%s %s",
 #if defined(NDNOB_DIRECT_WIFI)
-                "direct-wifi",
+                 "direct-wifi",
 #elif defined(NDNOB_DIRECT_BLE)
-                "direct-ble",
+                 "direct-ble",
 #endif
 #if defined(NDNOB_INFRA_UDP)
-                "infra-udp"
+                 "infra-udp"
 #elif defined(NDNOB_INFRA_ETHER)
-                "infra-ether"
+                 "infra-ether"
 #endif
   );
-  NDNOB_LOG_MSG("H.total", "%u\n", ESP.getHeapSize());
-  NDNOB_LOG_MSG("H.free-initial", "%u\n", ESP.getFreeHeap());
+  NDNPH_LOG_LINE("ndnob.H.total", "%u", ESP.getHeapSize());
+  NDNPH_LOG_LINE("ndnob.H.free-initial", "%u", ESP.getFreeHeap());
 
   esp8266ndn::setLogOutput(Serial);
 
