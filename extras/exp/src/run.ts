@@ -129,6 +129,7 @@ export class Run {
   };
 
   private async finish(): Promise<void> {
+    await delay(500);
     await this.cleanup();
     this.defer.resolve({
       program: this.device!.program,

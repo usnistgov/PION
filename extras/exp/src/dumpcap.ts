@@ -4,7 +4,7 @@ import execa, { ExecaChildProcess } from "execa";
 export class Dumpcap {
   private readonly child: ExecaChildProcess<Buffer>;
 
-  /** PCAP trace, available after `stop()`. */
+  /** PCAP trace, available after `close()`. */
   public pcap?: Buffer;
 
   /** Start packet capture. */
