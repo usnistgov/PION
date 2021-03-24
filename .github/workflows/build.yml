@@ -100,10 +100,11 @@ jobs:
           done
           for D in $(find ./examples -name '*.ino' -printf '%h\n'); do
             printf "\n---- \033[1;35mBuild $D\033[0m ----\n"
-            arduino-cli compile -b $FQBN $D
+            arduino-cli compile -b esp32:esp32:esp32 --warnings more \
+              --build-property 'build.partitions=noota_ffat' \
+              --build-property 'upload.maximum_size=2097152' \
+              $D
           done
-        env:
-          FQBN: esp32:esp32:heltec_wifi_kit_32
   node:
     runs-on: ubuntu-20.04
     strategy:

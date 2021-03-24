@@ -1,6 +1,7 @@
 .env
 .vscode
 /build*
+/examples/*/config.hpp
 /extras/*/runtime
 /extras/firmware-sizes.ndjson
 /spake2-mbed
