@@ -55,4 +55,4 @@ To run the experiment:
 1. Setup the environment according to [experiment system setup](expsetup.md).
 2. Install the authenticator and the PCAP parser.
 3. Start the certificate authority.
-4. `npm start -s` runs the experiment once.
+4. `npm start -s -- --count N` runs the experiment N times, default is 1.

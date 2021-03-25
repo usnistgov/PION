@@ -6,28 +6,28 @@ import { AppState, Device } from "./device";
 import type { DirectConnection } from "./direct-connection";
 import { Dumpcap } from "./dumpcap";
 import { env, INFRA_WIFI_NETIF_MACADDR } from "./env";
-import { labelExchanges, PacketMeta, PacketTxRx, pairTxRx, ProtocolPacket, ProtocolSequence } from "./packet";
+import { labelPacketSteps, PacketMeta, PacketStep, PacketTxRx, pairTxRx, ProtocolSequence } from "./packet";
 import { WifiStation } from "./wifi-station";
 
 function delay(duration: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, duration));
 }
 
-async function makeWireResult(
+async function analyzeDump(
     devicePackets: PacketMeta[],
     dump: Dumpcap|undefined, extractArg: string,
-    seq: ProtocolSequence): Promise<Run.WireResult> {
-  const result: Run.WireResult = {
+    seq: ProtocolSequence): Promise<Run.DumpResult> {
+  const result: Run.DumpResult = {
     devicePackets,
   };
-  if (!dump) {
+  if (!dump?.pcap) {
     return result;
   }
-  result.dumpPcap = dump.pcap?.toString("base64");
+  result.dumpPcap = dump.pcap.toString("base64");
   result.dumpPackets = await dump.extract(extractArg);
-  result.txrx = pairTxRx(result.dumpPackets, devicePackets);
   try {
-    result.exchanges = labelExchanges(seq, result.txrx);
+    result.txrx = Array.from(pairTxRx(result.dumpPackets, devicePackets));
+    result.exchanges = Array.from(labelPacketSteps(seq, result.txrx));
   } catch (err: unknown) {
     result.error = `${err}`;
   }
@@ -77,6 +77,7 @@ export class Run {
         this.startAuthenticator();
         break;
       case AppState.WaitDirectDisconnect:
+        await delay(500);
         await this.directDisconnect();
         break;
       case AppState.WaitInfraConnect:
@@ -162,9 +163,9 @@ export class Run {
     await delay(500);
     await this.cleanup();
 
-    const direct = await makeWireResult(this.device!.directPackets,
+    const direct = await analyzeDump(this.device!.directPackets,
       this.directDump, this.directDumpExtractArg, ProtocolSequence.direct);
-    const infra = await makeWireResult(this.device!.infraPackets,
+    const infra = await analyzeDump(this.device!.infraPackets,
       this.infraDump, `--sta=${INFRA_WIFI_NETIF_MACADDR}`, ProtocolSequence.infra);
     this.defer.resolve({
       program: this.device!.program,
@@ -185,16 +186,16 @@ export namespace Run {
     program: string[];
     device: Device.Result;
     authenticator?: Authenticator.Result;
-    direct?: WireResult;
-    infra?: WireResult;
+    direct?: DumpResult;
+    infra?: DumpResult;
   }
 
-  export interface WireResult {
+  export interface DumpResult {
     devicePackets?: PacketMeta[];
     dumpPcap?: string;
     dumpPackets?: PacketMeta[];
     txrx?: PacketTxRx[];
-    exchanges?: ProtocolPacket[];
+    exchanges?: PacketStep[];
     error?: string;
   }
 }
