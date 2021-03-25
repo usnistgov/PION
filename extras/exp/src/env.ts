@@ -1,5 +1,6 @@
 import { makeEnv, parsers } from "@strattadb/environment";
 import dotenv from "dotenv";
+import * as os from "os";
 
 dotenv.config();
 
@@ -85,3 +86,11 @@ export const env = makeEnv({
     required: true,
   },
 });
+
+export const INFRA_WIFI_NETIF_MACADDR = (() => {
+  const netif = os.networkInterfaces()[env.infraWifiNetif];
+  if (!netif) {
+    throw new Error(`network interface ${env.infraWifiNetif} is absent`);
+  }
+  return netif[0]!.mac;
+})();

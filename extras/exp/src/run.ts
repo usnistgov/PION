@@ -5,19 +5,43 @@ import { BleBridge } from "./ble-bridge";
 import { AppState, Device } from "./device";
 import type { DirectConnection } from "./direct-connection";
 import { Dumpcap } from "./dumpcap";
-import { env } from "./env";
+import { env, INFRA_WIFI_NETIF_MACADDR } from "./env";
+import { labelExchanges, PacketMeta, PacketTxRx, pairTxRx, ProtocolPacket, ProtocolSequence } from "./packet";
 import { WifiStation } from "./wifi-station";
 
 function delay(duration: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, duration));
 }
 
+async function makeWireResult(
+    devicePackets: PacketMeta[],
+    dump: Dumpcap|undefined, extractArg: string,
+    seq: ProtocolSequence): Promise<Run.WireResult> {
+  const result: Run.WireResult = {
+    devicePackets,
+  };
+  if (!dump) {
+    return result;
+  }
+  result.dumpPcap = dump.pcap?.toString("base64");
+  result.dumpPackets = await dump.extract(extractArg);
+  result.txrx = pairTxRx(result.dumpPackets, devicePackets);
+  try {
+    result.exchanges = labelExchanges(seq, result.txrx);
+  } catch (err: unknown) {
+    result.error = `${err}`;
+  }
+  return result;
+}
+
 /** Perform a single run of the experiment. */
 export class Run {
   private l!: Console;
   private defer!: DeferredPromise<Run.Result>;
+  private timeout!: NodeJS.Timeout;
   private device?: Device;
   private directDump?: Dumpcap;
+  private directDumpExtractArg = "";
   private directConn?: DirectConnection;
   private authenticatorConn?: Pick<Authenticator.Options, "deviceIp"|"devicePort"|"mtu">;
   private authenticator?: Authenticator;
@@ -28,6 +52,9 @@ export class Run {
   }: Run.Options = {}): Promise<Run.Result> {
     this.l = new console.Console(logger);
     this.defer = pDefer<Run.Result>();
+    this.timeout = setTimeout(() => {
+      this.defer.reject(new Error("timeout"));
+    }, 180000);
     this.defer.promise.finally(this.cleanup);
     this.initDevice();
     return this.defer.promise;
@@ -64,6 +91,7 @@ export class Run {
   private async directConnect(): Promise<void> {
     await delay(1000);
     if (this.device!.program.includes("direct-wifi")) {
+      this.directDumpExtractArg = "--ap";
       this.directDump = new Dumpcap(env.directWifiNetif);
       await delay(500);
 
@@ -81,6 +109,7 @@ export class Run {
         mtu: undefined,
       };
     } else if (this.device!.program.includes("direct-ble")) {
+      this.directDumpExtractArg = "--ble";
       this.directDump = new Dumpcap("lo", `host ${BleBridge.IP}`);
       await delay(500);
 
@@ -121,6 +150,7 @@ export class Run {
   }
 
   private cleanup = async () => {
+    clearTimeout(this.timeout);
     this.device?.close();
     this.authenticator?.close();
     await this.directConn?.disconnect();
@@ -131,12 +161,17 @@ export class Run {
   private async finish(): Promise<void> {
     await delay(500);
     await this.cleanup();
+
+    const direct = await makeWireResult(this.device!.directPackets,
+      this.directDump, this.directDumpExtractArg, ProtocolSequence.direct);
+    const infra = await makeWireResult(this.device!.infraPackets,
+      this.infraDump, `--sta=${INFRA_WIFI_NETIF_MACADDR}`, ProtocolSequence.infra);
     this.defer.resolve({
       program: this.device!.program,
       device: this.device!.result,
       authenticator: this.authenticator?.result,
-      directDump: this.directDump?.pcap?.toString("base64"),
-      infraDump: this.infraDump?.pcap?.toString("base64"),
+      direct,
+      infra,
     });
   }
 }
@@ -150,7 +185,16 @@ export namespace Run {
     program: string[];
     device: Device.Result;
     authenticator?: Authenticator.Result;
-    directDump?: string;
-    infraDump?: string;
+    direct?: WireResult;
+    infra?: WireResult;
+  }
+
+  export interface WireResult {
+    devicePackets?: PacketMeta[];
+    dumpPcap?: string;
+    dumpPackets?: PacketMeta[];
+    txrx?: PacketTxRx[];
+    exchanges?: ProtocolPacket[];
+    error?: string;
   }
 }

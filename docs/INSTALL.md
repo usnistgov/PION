@@ -34,3 +34,25 @@ To start the program:
 
 * `npm start -- --nop` enables "nop" challenge, for obtaining authenticator certificate.
 * `npm start` enables "possession" challenge only, for normal operation.
+
+## PCAP Parser
+
+[pcapparse](../extras/pcapparse) is a Go program for parsing packet dump from an experiment.
+
+To install the program:
+
+1. Install Go 1.16 or higher.
+2. `go install ./cmd/ndnob-pcapparse`.
+
+## Experiment Script
+
+The [experiment script](../extras/exp) is a Node.js program.
+
+Installation procedure is same as the certificate authority.
+
+To run the experiment:
+
+1. Setup the environment according to [experiment system setup](expsetup.md).
+2. Install the authenticator and the PCAP parser.
+3. Start the certificate authority.
+4. `npm start -s` runs the experiment once.

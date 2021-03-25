@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  cpp:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/setup-python@v2
@@ -129,3 +129,18 @@ jobs:
           npm run lint
           [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
       - run: npm run typecheck
+  go:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        subdir:
+          - ./extras/pcapparse
+    defaults:
+      run:
+        working-directory: ${{ matrix.subdir }}
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ^1.16
+      - uses: actions/checkout@v2
+      - run: go install ./cmd/ndnob-pcapparse

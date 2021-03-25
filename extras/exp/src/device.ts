@@ -2,6 +2,8 @@ import byline from "byline";
 import Emittery from "emittery";
 import execa, { ExecaChildProcess } from "execa";
 
+import type { PacketDir, PacketMeta } from "./packet";
+
 export enum AppState {
   Idle,
   MakePassword,
@@ -36,6 +38,19 @@ class DeviceLogLine {
   public get int(): number {
     return Number.parseInt(this.value, 10);
   }
+
+  public parsePacket(): PacketMeta {
+    const m = /^([<>]) len=(\d+)$/.exec(this.value);
+    if (!m) {
+      throw new Error("bad TransportTracer log");
+    }
+    return {
+      ts: this.hostTime,
+      deviceTime: this.deviceTime,
+      dir: m[1] as PacketDir,
+      len: Number.parseInt(m[2]!, 10),
+    };
+  }
 }
 
 interface Events {
@@ -69,6 +84,8 @@ export class Device extends Emittery<Events> {
   public readonly logs: string[] = [];
   public program: string[] = [];
   public states: AppState[] = [];
+  public directPackets: PacketMeta[] = [];
+  public infraPackets: PacketMeta[] = [];
 
   public password = "";
   public wifiBssid = "";
@@ -137,6 +154,14 @@ export class Device extends Emittery<Events> {
           if (this.states.length >= 2) {
             this.heapFreeState[this.states[this.states.length - 2]!] = l.int;
           }
+          break;
+        }
+        case "T.direct": {
+          this.directPackets.push(l.parsePacket());
+          break;
+        }
+        case "T.infra": {
+          this.infraPackets.push(l.parsePacket());
           break;
         }
       }
