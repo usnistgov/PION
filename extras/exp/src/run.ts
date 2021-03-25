@@ -24,8 +24,8 @@ async function analyzeDump(
     return result;
   }
   result.dumpPcap = dump.pcap.toString("base64");
-  result.dumpPackets = await dump.extract(extractArg);
   try {
+    result.dumpPackets = await dump.extract(extractArg);
     result.txrx = Array.from(pairTxRx(result.dumpPackets, devicePackets));
     result.exchanges = Array.from(labelPacketSteps(seq, result.txrx));
   } catch (err: unknown) {
@@ -53,9 +53,8 @@ export class Run {
     this.l = new console.Console(logger);
     this.defer = pDefer<Run.Result>();
     this.timeout = setTimeout(() => {
-      this.defer.reject(new Error("timeout"));
-    }, 180000);
-    this.defer.promise.finally(this.cleanup);
+      void this.fail("timeout");
+    }, 120000);
     this.initDevice();
     return this.defer.promise;
   }
@@ -65,7 +64,7 @@ export class Run {
     this.device.on("state", this.handleDeviceState);
     this.device.on("line", (line) => this.l.debug("device", line));
     // eslint-disable-next-line promise/prefer-await-to-then
-    void this.device.once("error").then((err) => this.defer.reject(err));
+    void this.device.once("error").then((err) => this.fail(err));
   }
 
   private handleDeviceState = async (state: AppState) => {
@@ -139,7 +138,7 @@ export class Run {
     });
     this.authenticator.on("line", (line) => this.l.debug("authenticator", line));
     // eslint-disable-next-line promise/prefer-await-to-then
-    void this.authenticator.once("error").then((err) => this.defer.reject(err));
+    void this.authenticator.once("error").then((err) => this.fail(err));
   }
 
   private async directDisconnect(): Promise<void> {
@@ -158,6 +157,16 @@ export class Run {
     await this.directDump?.close();
     await this.infraDump?.close();
   };
+
+  private async fail(err: unknown): Promise<void> {
+    await this.cleanup();
+    this.defer.resolve({
+      program: this.device?.program,
+      device: this.device?.result,
+      authenticator: this.authenticator?.result,
+      error: `${err}`,
+    });
+  }
 
   private async finish(): Promise<void> {
     await delay(500);
@@ -183,11 +192,12 @@ export namespace Run {
   }
 
   export interface Result {
-    program: string[];
-    device: Device.Result;
+    program?: string[];
+    device?: Device.Result;
     authenticator?: Authenticator.Result;
     direct?: DumpResult;
     infra?: DumpResult;
+    error?: string;
   }
 
   export interface DumpResult {
