@@ -12,42 +12,7 @@ export interface PacketMeta {
   deviceTime?: number;
   dir: PacketDir;
   len: number;
-}
-
-/** Paired packet TX and RX. */
-export interface PacketTxRx {
-  dir: PacketDir;
-  len: number;
-  txTime: number;
-  rxTime: number;
-}
-
-/**
- * Pair packet TX and RX based on direction and length.
- * @param dump packets found in dumpcap.
- * @param device packets reported by device.
- */
-export function* pairTxRx(dump: readonly PacketMeta[], device: readonly PacketMeta[]): Iterable<PacketTxRx> {
-  if (dump.length !== device.length) {
-    throw new Error(`unmatched packet counts dump=${dump.length} device=${device.length}`);
-  }
-
-  for (let i = 0; i < dump.length && i < device.length; ++i) {
-    const x = dump[i]!;
-    const y = device[i]!;
-    if (x.dir !== y.dir || x.len !== y.len) {
-      throw new Error(`unmatched packets at ${i}`);
-    }
-
-    switch (x.dir) {
-      case "<":
-        yield { dir: "<", len: x.len, txTime: y.ts, rxTime: x.ts };
-        break;
-      case ">":
-        yield { dir: ">", len: x.len, txTime: x.ts, rxTime: y.ts };
-        break;
-    }
-  }
+  protocolStep?: string;
 }
 
 /** Definition of protocol sequence. */
@@ -81,31 +46,22 @@ export namespace ProtocolSequence {
   ];
 }
 
-/** Recognized packets for a protocol step. */
-export interface PacketStep {
-  id: string;
-  dir: PacketDir;
-  fragments: PacketTxRx[];
-}
-
 /** Recognize packets for protocol steps. */
-export function* labelPacketSteps(seq: ProtocolSequence, txrx: readonly PacketTxRx[]): Iterable<PacketStep> {
+export function labelPacketSteps(seq: ProtocolSequence, pkts: PacketMeta[]): void {
   let i = 0;
-  for (const [dir, id] of seq) {
-    let pkt = txrx[i];
-    if (!pkt || pkt.dir !== dir) {
-      throw new Error(`missing packet for step ${dir} ${id}`);
+  for (const [dir, step] of seq) {
+    let pkt = pkts[i];
+    if (pkt?.dir !== dir) {
+      throw new Error(`missing packet for step ${step}`);
     }
 
-    const fragments: PacketTxRx[] = [];
     do {
-      fragments.push(pkt!);
+      pkt!.protocolStep = step;
       ++i;
-    } while ((pkt = txrx[i])?.dir === dir);
-    yield { id, dir, fragments };
+    } while ((pkt = pkts[i])?.dir === dir);
   }
 
-  if (i !== txrx.length) {
+  if (i !== pkts.length) {
     throw new Error(`unexpected packet after ${i}`);
   }
 }

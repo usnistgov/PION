@@ -6,7 +6,7 @@ import { AppState, Device } from "./device";
 import type { DirectConnection } from "./direct-connection";
 import { Dumpcap } from "./dumpcap";
 import { env, INFRA_WIFI_NETIF_MACADDR } from "./env";
-import { labelPacketSteps, PacketMeta, PacketStep, PacketTxRx, pairTxRx, ProtocolSequence } from "./packet";
+import { labelPacketSteps, PacketMeta, ProtocolSequence } from "./packet";
 import { WifiStation } from "./wifi-station";
 
 function delay(duration: number): Promise<void> {
@@ -26,8 +26,8 @@ async function analyzeDump(
   result.dumpPcap = dump.pcap.toString("base64");
   try {
     result.dumpPackets = await dump.extract(extractArg);
-    result.txrx = Array.from(pairTxRx(result.dumpPackets, devicePackets));
-    result.exchanges = Array.from(labelPacketSteps(seq, result.txrx));
+    labelPacketSteps(seq, result.devicePackets!);
+    labelPacketSteps(seq, result.dumpPackets);
   } catch (err: unknown) {
     result.error = `${err}`;
   }
@@ -204,8 +204,6 @@ export namespace Run {
     devicePackets?: PacketMeta[];
     dumpPcap?: string;
     dumpPackets?: PacketMeta[];
-    txrx?: PacketTxRx[];
-    exchanges?: PacketStep[];
     error?: string;
   }
 }
