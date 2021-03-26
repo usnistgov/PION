@@ -1,4 +1,6 @@
 import pDefer, { DeferredPromise } from "p-defer";
+// @ts-expect-error
+import { setTimeout as delay } from "timers/promises";
 
 import { Authenticator } from "./authenticator";
 import { BleBridge } from "./ble-bridge";
@@ -8,10 +10,6 @@ import { Dumpcap } from "./dumpcap";
 import { env, INFRA_WIFI_NETIF_MACADDR } from "./env";
 import { labelPacketSteps, PacketMeta, ProtocolSequence } from "./packet";
 import { WifiStation } from "./wifi-station";
-
-function delay(duration: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, duration));
-}
 
 async function analyzeDump(
     devicePackets: PacketMeta[],
@@ -40,9 +38,10 @@ export class Run {
   private defer!: DeferredPromise<Run.Result>;
   private timeout!: NodeJS.Timeout;
   private device?: Device;
+  private directPromise?: Promise<void>;
+  private directConn?: DirectConnection;
   private directDump?: Dumpcap;
   private directDumpExtractArg = "";
-  private directConn?: DirectConnection;
   private authenticatorConn?: Pick<Authenticator.Options, "deviceIp"|"devicePort"|"mtu">;
   private authenticator?: Authenticator;
   private infraDump?: Dumpcap;
@@ -70,9 +69,11 @@ export class Run {
   private handleDeviceState = async (state: AppState) => {
     switch (state) {
       case AppState.WaitDirectConnect:
-        await this.directConnect();
+        await delay(1000);
+        this.directPromise = this.directConnect();
         break;
       case AppState.WaitPake:
+        await this.directPromise;
         this.startAuthenticator();
         break;
       case AppState.WaitDirectDisconnect:
@@ -89,12 +90,9 @@ export class Run {
   };
 
   private async directConnect(): Promise<void> {
-    await delay(1000);
+    let dumpNetif!: string;
+    let dumpFilter: string|undefined;
     if (this.device!.program.includes("direct-wifi")) {
-      this.directDumpExtractArg = "--ap";
-      this.directDump = new Dumpcap(env.directWifiNetif);
-      await delay(500);
-
       this.directConn = new WifiStation({
         ctrl: env.directWifiWpaCtrl,
         netif: env.directWifiNetif,
@@ -102,6 +100,8 @@ export class Run {
         passphrase: env.directWifiPassphrase,
         localIp: `${env.directWifiAuthIp}/${env.directWifiSubnet}`,
       });
+      dumpNetif = env.directWifiNetif;
+      this.directDumpExtractArg = "--ap";
 
       this.authenticatorConn = {
         deviceIp: env.directWifiDeviceIp,
@@ -109,11 +109,10 @@ export class Run {
         mtu: undefined,
       };
     } else if (this.device!.program.includes("direct-ble")) {
-      this.directDumpExtractArg = "--ble";
-      this.directDump = new Dumpcap("lo", `host ${BleBridge.IP}`);
-      await delay(500);
-
       this.directConn = new BleBridge(this.device!.bleAddr, env.directBleBridgePath);
+      dumpNetif = "lo";
+      dumpFilter = `host ${BleBridge.IP}`;
+      this.directDumpExtractArg = "--ble";
 
       this.authenticatorConn = {
         deviceIp: BleBridge.IP,
@@ -125,6 +124,8 @@ export class Run {
     }
 
     await this.directConn.connect();
+    this.directDump = new Dumpcap(dumpNetif, dumpFilter);
+    await delay(1000);
   }
 
   private startAuthenticator(): void {

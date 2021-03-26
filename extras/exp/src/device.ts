@@ -67,7 +67,7 @@ export class Device extends Emittery<Events> {
 
   constructor(port: string) {
     super();
-    this.child = execa.command(`pipenv run python -u device_conn.py --port ${port}`, {
+    this.child = execa("pipenv", ["run", "python", "-u", "device_conn.py", "--port", port], {
       buffer: false,
       encoding: null,
       stdin: "ignore",
