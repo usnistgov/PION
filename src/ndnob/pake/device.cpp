@@ -432,7 +432,7 @@ Device::handleTempCert(ndnph::Data data)
   m_tPvt.setName(m_tempCert.getName());
 
   res.setName(m_lastInterestName);
-  send(res.sign(ndnph::NullKey::get()), m_lastInterestPacketInfo) && gotoState(State::Success);
+  send(res.sign(m_tPvt), m_lastInterestPacketInfo) && gotoState(State::Success);
   return true;
 }
 

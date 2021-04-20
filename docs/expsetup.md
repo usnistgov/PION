@@ -110,13 +110,12 @@ With this repository cloned at `~/code/ndn-onboarding`, build and start NFD Dock
 
 ```bash
 cd ~/code/ndn-onboarding/extras/nfd
-docker build -t ndnob-nfd .
+docker build -t nfd .
 
 docker rm -f nfd
-docker run -d --name nfd \
+docker run -d --name nfd --init \
   --network host --cap-add=NET_ADMIN \
   -v /run/ndn:/run/ndn \
   --restart unless-stopped \
-  --init \
-  ndnob-nfd
+  nfd
 ```

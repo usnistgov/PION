@@ -9,7 +9,7 @@ It also contains certain instrumentation features.
 
 To install the program to a microcontroller:
 
-1. Install Arduino IDE, [Arduino core for the ESP32](https://github.com/espressif/arduino-esp32) v1.0.5, and [esp8266ndn](https://github.com/yoursunny/esp8266ndn) library/
+1. Install Arduino IDE, [Arduino core for the ESP32](https://github.com/espressif/arduino-esp32) v1.0.6, and [esp8266ndn](https://github.com/yoursunny/esp8266ndn) library.
 2. Clone this repository to `$HOME/Arduino/libraries`.
 3. Copy `sample.config.hpp` to `config.hpp`, and modify as necessary.
 4. In Arduino Tools menu, select "Board: ESP32 Dev Module" and "Partition Scheme: No OTA (2MB APP/2MB FATFS)".
@@ -54,5 +54,19 @@ To run the experiment:
 
 1. Setup the environment according to [experiment system setup](expsetup.md).
 2. Install the authenticator and the PCAP parser.
-3. Start the certificate authority.
-4. `npm start -s -- --count N` runs the experiment N times, default is 1.
+3. Create an authenticator certificate (see below).
+4. Start the certificate authority normally.
+5. `npm start -s -- --count N` runs the experiment N times, default is 1.
+
+To create an authenticator certificate, start the certificate authority with "nop" challenge enabled, then:
+
+```bash
+export NDNPH_UPLINK_UDP=127.0.0.1
+export NDNPH_UPLINK_UDP_PORT=6363
+unset NDNPH_UPLINK_MTU
+export NDNPH_KEYCHAIN=./runtime/keychain
+
+ndnph-keychain keygen a /my-network/32=onboarding-authenticator/$(openssl rand -hex 4) >/dev/null
+ndnph-ndncertclient -P ../ca/runtime/profile.data -i a | ndnph-keychain certimport a
+ndnph-keychain certinfo a
+```

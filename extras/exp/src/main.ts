@@ -1,6 +1,5 @@
 import * as ndjson from "ndjson";
 import yargs, { Argv } from "yargs";
-// @ts-expect-error
 import { hideBin } from "yargs/helpers";
 
 import { Run } from "./run";
