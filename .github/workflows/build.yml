@@ -26,14 +26,6 @@ jobs:
         env:
           NDNPH_VERSION: develop
       - uses: actions/checkout@v2
-      - name: checkout Pesa/spake2-mbed
-        uses: actions/checkout@v2
-        with:
-          repository: Pesa/spake2-mbed
-          ref: 25af4f567b57dd8634050e77dcd8769d8cc8f306
-          token: ${{ secrets.GH_PAT }}
-          path: spake2-mbed
-      - run: mk/update-vendor.sh
       - name: check meson.build lists and code style
         run: |
           mk/update-list.sh
@@ -62,14 +54,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install esptool
       - uses: actions/checkout@v2
-      - name: checkout Pesa/spake2-mbed
-        uses: actions/checkout@v2
-        with:
-          repository: Pesa/spake2-mbed
-          ref: 25af4f567b57dd8634050e77dcd8769d8cc8f306
-          token: ${{ secrets.GH_PAT }}
-          path: spake2-mbed
-      - run: mk/update-vendor.sh
       - name: link library
         run: |
           mkdir -p $HOME/Arduino/libraries

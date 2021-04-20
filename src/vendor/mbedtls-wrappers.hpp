@@ -50,6 +50,8 @@ class Mpi final : public Object<mbedtls_mpi,
 public:
   using Object::Object;
 
+  explicit Mpi() noexcept = default;
+
   explicit Mpi(int i) noexcept
     : Mpi()
   {
