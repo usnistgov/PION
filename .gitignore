@@ -6,8 +6,6 @@
 /extras/firmware-sizes.ndjson
 /extras/pcapparse/pcapparse
 /extras/pcapparse/pcapparse.exe
-/spake2-mbed
-/src/vendor/
 Pipfile.lock
 node_modules
 package-lock.json
