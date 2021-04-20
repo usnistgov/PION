@@ -1,35 +1,32 @@
 // SPDX-License-Identifier: NIST-PD
 
-#ifndef SPAKE2_MBED_SPAKE2_HPP
-#define SPAKE2_MBED_SPAKE2_HPP
-
-#include <array>
-#include <cassert>
-#include <cstdint>
-#include <cstring>
-#include <vector>
-
-#include <mbedtls/entropy.h>
-#include <mbedtls/hkdf.h>
-#include <mbedtls/hmac_drbg.h>
-#include <mbedtls/md.h>
-#include <mbedtls/ssl_internal.h> // for mbedtls_ssl_safer_memcmp
+#ifndef NDNOB_SPAKE2_SPAKE2_HPP
+#define NDNOB_SPAKE2_SPAKE2_HPP
 
 #include "mbedtls-wrappers.hpp"
 
+#include <vector>
+
+#include <mbedtls/hkdf.h>
+#include <mbedtls/hmac_drbg.h>
+#include <mbedtls/md.h>
+
 #ifdef SPAKE2_DEBUG
 #include <iostream>
-#define SPAKE2_MBED_ERR(x) \
-  do { \
-    std::cerr << __FILE__ << ':' << __LINE__ << ": mbedtls error " << (x) << '\n'; \
+#define SPAKE2_MBED_ERR(x)                                                                         \
+  do {                                                                                             \
+    std::cerr << __FILE__ << ':' << __LINE__ << ": mbedtls error " << (x) << '\n';                 \
   } while (false)
 #else
-#define SPAKE2_MBED_ERR(x) do {} while (false)
+#define SPAKE2_MBED_ERR(x)                                                                         \
+  do {                                                                                             \
+  } while (false)
 #endif
 
 namespace spake2 {
 
-enum class Role {
+enum class Role
+{
   Alice,
   Bob,
 };
@@ -50,11 +47,11 @@ appendToTranscript(std::vector<uint8_t>& transcript, const uint8_t* buf, size_t 
 class ContextBase
 {
 protected:
-  explicit
-  ContextBase(Role role) noexcept;
+  explicit ContextBase(Role role) noexcept;
 
   // Protocol state machine: each party goes through each of these states in order
-  enum class State {
+  enum class State
+  {
     Initial,
     AwaitingPublicShare,
     SendingConfirmation,
@@ -65,8 +62,8 @@ protected:
   const Role m_role;
   State m_state = State::Initial;
 
-  static const mbed::Mpi s_one;
-  static const mbed::Mpi s_minusOne;
+  static const ndnph::mbedtls::Mpi s_one;
+  static const ndnph::mbedtls::Mpi s_minusOne;
 };
 
 } // namespace detail
@@ -74,7 +71,8 @@ protected:
 struct P256
 {
   static constexpr mbedtls_ecp_group_id Id = MBEDTLS_ECP_DP_SECP256R1;
-  enum {
+  enum
+  {
     ScalarSize = 32,
     UncompressedPointSize = 65,
   };
@@ -86,7 +84,8 @@ struct P256
 struct P384
 {
   static constexpr mbedtls_ecp_group_id Id = MBEDTLS_ECP_DP_SECP384R1;
-  enum {
+  enum
+  {
     ScalarSize = 48,
     UncompressedPointSize = 97,
   };
@@ -98,7 +97,8 @@ struct P384
 struct P521
 {
   static constexpr mbedtls_ecp_group_id Id = MBEDTLS_ECP_DP_SECP521R1;
-  enum {
+  enum
+  {
     ScalarSize = 66,
     UncompressedPointSize = 133,
   };
@@ -110,7 +110,8 @@ struct P521
 struct SHA256
 {
   static constexpr mbedtls_md_type_t Type = MBEDTLS_MD_SHA256;
-  enum {
+  enum
+  {
     OutputSize = 32,
   };
 };
@@ -118,7 +119,8 @@ struct SHA256
 struct SHA512
 {
   static constexpr mbedtls_md_type_t Type = MBEDTLS_MD_SHA512;
-  enum {
+  enum
+  {
     OutputSize = 64,
   };
 };
@@ -131,24 +133,22 @@ struct SHA512
  *
  * @sa https://tools.ietf.org/html/draft-irtf-cfrg-spake2-18
  */
-template<typename Group = P256,
-         typename Hash = SHA256>
+template<typename Group = P256, typename Hash = SHA256>
 class Context final : detail::ContextBase
 {
 public:
-  enum {
-    FirstMessageSize  = Group::UncompressedPointSize,
+  enum
+  {
+    FirstMessageSize = Group::UncompressedPointSize,
     SecondMessageSize = Hash::OutputSize,
-    SharedKeySize     = Hash::OutputSize / 2,
+    SharedKeySize = Hash::OutputSize / 2,
   };
 
-  explicit
-  Context(Role role, mbedtls_entropy_context* entropyCtx) noexcept;
+  explicit Context(Role role, mbedtls_entropy_context* entropyCtx) noexcept;
 
-  bool start(const uint8_t* pw, size_t pwLen,
-             const uint8_t* myId = nullptr, size_t myIdLen = 0,
-             const uint8_t* peerId = nullptr, size_t peerIdLen = 0,
-             const uint8_t* aad = nullptr, size_t aadLen = 0) noexcept;
+  bool start(const uint8_t* pw, size_t pwLen, const uint8_t* myId = nullptr, size_t myIdLen = 0,
+             const uint8_t* peerId = nullptr, size_t peerIdLen = 0, const uint8_t* aad = nullptr,
+             size_t aadLen = 0) noexcept;
 
   bool generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) noexcept;
 
@@ -168,20 +168,6 @@ public:
     return m_key;
   }
 
-  // for testing only
-  void setw(const char* w) noexcept
-  {
-    int ret = mbedtls_mpi_read_string(m_w, 16, w);
-    assert(ret == 0);
-  }
-
-  // for testing only
-  void setx(const char* x) noexcept
-  {
-    int ret = mbedtls_mpi_read_string(m_x, 16, x);
-    assert(ret == 0);
-  }
-
 private:
   std::array<uint8_t, detail::max(FirstMessageSize, SecondMessageSize)> m_myMsg{};
   std::array<uint8_t, Hash::OutputSize> m_expectedMac{};
@@ -191,14 +177,15 @@ private:
   mbed::Object<mbedtls_md_context_t, mbedtls_md_init, mbedtls_md_free> m_md;
   mbed::Object<mbedtls_ecp_group, mbedtls_ecp_group_init, mbedtls_ecp_group_free> m_group;
 
-  mbed::Mpi m_w;
-  mbed::Mpi m_x;
-  mbed::EcPoint m_S;
-  mbed::EcPoint m_M;
-  mbed::EcPoint m_N;
+  ndnph::mbedtls::Mpi m_w;
+  ndnph::mbedtls::Mpi m_x;
+  ndnph::mbedtls::EcPoint m_S;
+  ndnph::mbedtls::EcPoint m_M;
+  ndnph::mbedtls::EcPoint m_N;
 
-  std::vector<uint8_t> m_transcript;    // TODO: consider making statically sized
-  std::vector<uint8_t> m_info{          // TODO: consider making statically sized
+  std::vector<uint8_t> m_transcript; // TODO: consider making statically sized
+  std::vector<uint8_t> m_info{
+    // TODO: consider making statically sized
     'C', 'o', 'n', 'f', 'i', 'r', 'm', 'a', 't', 'i', 'o', 'n', 'K', 'e', 'y', 's',
   };
 };
@@ -225,18 +212,17 @@ Context<Group, Hash>::Context(Role role, mbedtls_entropy_context* entropyCtx) no
   assert(ret == 0);
 
   // Load protocol constants M and N
-  ret = mbedtls_ecp_point_read_binary(m_group, m_M, Group::M, sizeof(Group::M));
+  ret = mbedtls_ecp_point_read_binary(m_group, &m_M, Group::M, sizeof(Group::M));
   assert(ret == 0);
-  ret = mbedtls_ecp_point_read_binary(m_group, m_N, Group::N, sizeof(Group::N));
+  ret = mbedtls_ecp_point_read_binary(m_group, &m_N, Group::N, sizeof(Group::N));
   assert(ret == 0);
 }
 
 template<typename Group, typename Hash>
 bool
-Context<Group, Hash>::start(const uint8_t* pw, size_t pwLen,
-                            const uint8_t* myId, size_t myIdLen,
-                            const uint8_t* peerId, size_t peerIdLen,
-                            const uint8_t* aad, size_t aadLen) noexcept
+Context<Group, Hash>::start(const uint8_t* pw, size_t pwLen, const uint8_t* myId, size_t myIdLen,
+                            const uint8_t* peerId, size_t peerIdLen, const uint8_t* aad,
+                            size_t aadLen) noexcept
 {
   // TODO: sanity-check state machine?
 
@@ -248,8 +234,7 @@ Context<Group, Hash>::start(const uint8_t* pw, size_t pwLen,
   if (m_role == Role::Alice) {
     detail::appendToTranscript(m_transcript, myId, myIdLen);
     detail::appendToTranscript(m_transcript, peerId, peerIdLen);
-  }
-  else {
+  } else {
     detail::appendToTranscript(m_transcript, peerId, peerIdLen);
     detail::appendToTranscript(m_transcript, myId, myIdLen);
   }
@@ -275,27 +260,27 @@ Context<Group, Hash>::start(const uint8_t* pw, size_t pwLen,
     return false;
   }
 
-  mbed::Mpi pwHashScalar;
-  ret = mbedtls_mpi_read_binary(pwHashScalar, pwHash.data(), pwHash.size());
+  ndnph::mbedtls::Mpi pwHashScalar;
+  ret = mbedtls_mpi_read_binary(&pwHashScalar, pwHash.data(), pwHash.size());
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
-  ret = mbedtls_mpi_mod_mpi(m_w, pwHashScalar, &m_group->N);
+  ret = mbedtls_mpi_mod_mpi(&m_w, &pwHashScalar, &m_group->N);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
 
   // Generate random scalar x
-  mbed::Mpi random;
+  ndnph::mbedtls::Mpi random;
   // NOTE: generate 8 extra bytes to avoid bias in modulo operation
-  ret = mbedtls_mpi_fill_random(random, Group::ScalarSize + 8, mbedtls_hmac_drbg_random, m_drbg);
+  ret = mbedtls_mpi_fill_random(&random, Group::ScalarSize + 8, mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
-  ret = mbedtls_mpi_mod_mpi(m_x, random, &m_group->N);
+  ret = mbedtls_mpi_mod_mpi(&m_x, &random, &m_group->N);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -316,17 +301,17 @@ Context<Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) no
   //       that follows because the latter is _not_ constant time while the former is.
 
   int ret;
-  mbed::EcPoint X;
+  ndnph::mbedtls::EcPoint X;
   // X = x * P
-  ret = mbedtls_ecp_mul(m_group, X, m_x, &m_group->G, mbedtls_hmac_drbg_random, m_drbg);
+  ret = mbedtls_ecp_mul(m_group, &X, &m_x, &m_group->G, mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
 
-  mbed::EcPoint wMN;
+  ndnph::mbedtls::EcPoint wMN;
   // wMN = w * (M|N)
-  ret = mbedtls_ecp_mul(m_group, wMN, m_w, m_role == Role::Alice ? m_M : m_N,
+  ret = mbedtls_ecp_mul(m_group, &wMN, &m_w, m_role == Role::Alice ? &m_M : &m_N,
                         mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
@@ -334,7 +319,7 @@ Context<Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) no
   }
 
   // S = wMN + X
-  ret = mbedtls_ecp_muladd(m_group, m_S, s_one, wMN, s_one, X);
+  ret = mbedtls_ecp_muladd(m_group, &m_S, &s_one, &wMN, &s_one, &X);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -342,8 +327,8 @@ Context<Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) no
 
   std::array<uint8_t, Group::UncompressedPointSize> binS{};
   size_t lenS = 0;
-  ret = mbedtls_ecp_point_write_binary(m_group, m_S, MBEDTLS_ECP_PF_UNCOMPRESSED,
-                                       &lenS, binS.data(), binS.size());
+  ret = mbedtls_ecp_point_write_binary(m_group, &m_S, MBEDTLS_ECP_PF_UNCOMPRESSED, &lenS,
+                                       binS.data(), binS.size());
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -366,40 +351,40 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
   }
 
   int ret;
-  mbed::EcPoint T;
-  ret = mbedtls_ecp_point_read_binary(m_group, T, inMsg, inMsgLen);
+  ndnph::mbedtls::EcPoint T;
+  ret = mbedtls_ecp_point_read_binary(m_group, &T, inMsg, inMsgLen);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
   // Verify that the received point is on the curve
-  ret = mbedtls_ecp_check_pubkey(m_group, T);
+  ret = mbedtls_ecp_check_pubkey(m_group, &T);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
 
-  mbed::EcPoint wNM;
+  ndnph::mbedtls::EcPoint wNM;
   // wNM = w * (N|M)
-  ret = mbedtls_ecp_mul(m_group, wNM, m_w, m_role == Role::Alice ? m_N : m_M,
+  ret = mbedtls_ecp_mul(m_group, &wNM, &m_w, m_role == Role::Alice ? &m_N : &m_M,
                         mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
 
-  mbed::EcPoint Y;
+  ndnph::mbedtls::EcPoint Y;
   // Y = T - wNM
-  ret = mbedtls_ecp_muladd(m_group, Y, s_one, T, s_minusOne, wNM);
+  ret = mbedtls_ecp_muladd(m_group, &Y, &s_one, &T, &s_minusOne, &wNM);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
 
-  mbed::EcPoint K;
+  ndnph::mbedtls::EcPoint K;
   // K = h * x * Y
   // NOTE: the cofactor h is 1 for NIST curves
-  ret = mbedtls_ecp_mul(m_group, K, m_x, Y, mbedtls_hmac_drbg_random, m_drbg);
+  ret = mbedtls_ecp_mul(m_group, &K, &m_x, &Y, mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -407,15 +392,15 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
 
   std::array<uint8_t, Group::UncompressedPointSize> binK{};
   size_t lenK = 0;
-  ret = mbedtls_ecp_point_write_binary(m_group, K, MBEDTLS_ECP_PF_UNCOMPRESSED,
-                                       &lenK, binK.data(), binK.size());
+  ret = mbedtls_ecp_point_write_binary(m_group, &K, MBEDTLS_ECP_PF_UNCOMPRESSED, &lenK, binK.data(),
+                                       binK.size());
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
 
   std::array<uint8_t, Group::ScalarSize> binW{};
-  ret = mbedtls_mpi_write_binary(m_w, binW.data(), binW.size());
+  ret = mbedtls_mpi_write_binary(&m_w, binW.data(), binW.size());
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -425,8 +410,7 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
   if (m_role == Role::Alice) {
     detail::appendToTranscript(m_transcript, m_myMsg.data(), FirstMessageSize);
     detail::appendToTranscript(m_transcript, inMsg, inMsgLen);
-  }
-  else {
+  } else {
     detail::appendToTranscript(m_transcript, inMsg, inMsgLen);
     detail::appendToTranscript(m_transcript, m_myMsg.data(), FirstMessageSize);
   }
@@ -457,8 +441,8 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
 
   // Derive confirmation keys (HKDF)
   std::array<uint8_t, Hash::OutputSize> Kc{};
-  ret = mbedtls_hkdf(mbedtls_md_info_from_type(Hash::Type), nullptr, 0,
-                     Ka, transcriptHash.size() / 2, m_info.data(), m_info.size(), Kc.data(), Kc.size());
+  ret = mbedtls_hkdf(mbedtls_md_info_from_type(Hash::Type), nullptr, 0, Ka,
+                     transcriptHash.size() / 2, m_info.data(), m_info.size(), Kc.data(), Kc.size());
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -504,8 +488,7 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
   if (m_role == Role::Alice) {
     std::memcpy(m_myMsg.data(), macA.data(), macA.size());
     std::memcpy(m_expectedMac.data(), macB.data(), macB.size());
-  }
-  else {
+  } else {
     std::memcpy(m_myMsg.data(), macB.data(), macB.size());
     std::memcpy(m_expectedMac.data(), macA.data(), macA.size());
   }
@@ -538,11 +521,8 @@ Context<Group, Hash>::processSecondMessage(const uint8_t* inMsg, size_t inMsgLen
   }
 
   // Check that the peer's MAC matches the one we expect
-  if (inMsgLen != m_expectedMac.size()) {
-    return false;
-  }
-  // TODO: mbedtls_ssl_safer_memcmp is an internal function, replace it with something else
-  if (mbedtls_ssl_safer_memcmp(inMsg, m_expectedMac.data(), m_expectedMac.size()) != 0) {
+  if (!ndnph::port::TimingSafeEqual()(inMsg, inMsgLen, m_expectedMac.data(),
+                                      m_expectedMac.size())) {
     return false;
   }
 
@@ -552,4 +532,4 @@ Context<Group, Hash>::processSecondMessage(const uint8_t* inMsg, size_t inMsgLen
 
 } // namespace spake2
 
-#endif // SPAKE2_MBED_SPAKE2_HPP
+#endif // NDNOB_SPAKE2_SPAKE2_HPP

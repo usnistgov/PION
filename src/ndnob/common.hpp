@@ -7,6 +7,4 @@
 #include <NDNph.h>
 #endif
 
-#include "../vendor/spake2.hpp"
-
 #endif // NDNOB_COMMON_HPP

@@ -1,6 +1,7 @@
 #ifndef NDNOB_PAKE_PACKET_HPP
 #define NDNOB_PAKE_PACKET_HPP
 
+#include "../spake2/spake2.hpp"
 #include "an.hpp"
 
 namespace ndnob {

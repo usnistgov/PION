@@ -3,7 +3,7 @@
 namespace ndnob {
 namespace pake {
 
-static mbed::Object<mbedtls_entropy_context, mbedtls_entropy_init, mbedtls_entropy_free> entropy;
+static mbed::Entropy entropy;
 
 class Authenticator::GotoState
 {
