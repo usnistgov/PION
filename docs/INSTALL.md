@@ -18,7 +18,7 @@ To install the program to a microcontroller:
 ## Authenticator
 
 The [authenticator](../programs/authenticator) is a CLI program for Linux.
-It can be installed on Ubuntu 20.04 with the [install-programs.sh](../extras/install-programs.sh) script.
+It can be installed on Ubuntu 20.04 with the [programs/install.sh](../programs/install.sh) script.
 
 ## Certificate Authority
 
@@ -26,7 +26,7 @@ The [certificate authority](../extras/ca) is a Node.js program.
 
 To install the program:
 
-1. Install Node.js 15.x and NPM 7.x with [nvm](https://github.com/nvm-sh/nvm).
+1. Install Node.js 16.x with [nvm](https://github.com/nvm-sh/nvm).
 2. `npm install`.
 3. Modify `.env` as necessary.
 

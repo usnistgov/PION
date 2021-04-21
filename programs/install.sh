@@ -11,11 +11,6 @@ if [[ $OSREL != 'focal' ]]; then
   exit 1
 fi
 
-if ! [[ -f spake2-mbed/spake2.hpp ]]; then
-  echo 'Pesa/spake2-mbed checkout is missing' >/dev/stderr
-  exit 1
-fi
-
 sudo apt-get update
 sudo apt-get -y -qq install --no-install-recommends build-essential ca-certificates curl libboost-dev libmbedtls-dev ninja-build python3-distutils
 if ! which meson >/dev/null; then
@@ -37,7 +32,6 @@ if ! [[ -f /usr/local/include/NDNph.h ]]; then
   )
 fi
 
-mk/update-vendor.sh
 if ! [[ -f ${NDNOB_BUILDDIR}/build.ninja ]]; then
   meson ${NDNOB_BUILDDIR}
 fi
