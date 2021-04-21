@@ -6,6 +6,10 @@
 
 namespace ndnob {
 namespace pake {
+
+using Spake2Authenticator = spake2::Context<spake2::Role::Alice>;
+using Spake2Device = spake2::Context<spake2::Role::Bob>;
+
 namespace packet_struct {
 
 /**
@@ -25,7 +29,7 @@ namespace packet_struct {
 
 struct PakeRequest
 {
-  uint8_t spake2pa[spake2::Context<>::FirstMessageSize];
+  uint8_t spake2pa[Spake2Device::FirstMessageSize];
   ndnph::Name authenticatorCertName;
 
 #ifdef NDNPH_PRINT_OSTREAM
@@ -41,8 +45,8 @@ struct PakeRequest
 
 struct PakeResponse
 {
-  uint8_t spake2pb[spake2::Context<>::FirstMessageSize];
-  uint8_t spake2cb[spake2::Context<>::SecondMessageSize];
+  uint8_t spake2pb[Spake2Device::FirstMessageSize];
+  uint8_t spake2cb[Spake2Device::SecondMessageSize];
 
 #ifdef NDNPH_PRINT_OSTREAM
   friend std::ostream& operator<<(std::ostream& os, const PakeResponse& p)
@@ -58,7 +62,7 @@ struct PakeResponse
 
 struct ConfirmRequest
 {
-  uint8_t spake2ca[spake2::Context<>::SecondMessageSize];
+  uint8_t spake2ca[Spake2Device::SecondMessageSize];
   ndnph::tlv::Value nc;
   ndnph::Name caProfileName;
   ndnph::Name deviceName;
@@ -121,7 +125,7 @@ struct CredentialResponse
 
 } // namespace packet_struct
 
-using AesGcm = ndnph::mbedtls::AesGcm<spake2::Context<>::SharedKeySize * 8>;
+using AesGcm = ndnph::mbedtls::AesGcm<Spake2Device::SharedKeySize * 8>;
 
 using Encrypted =
   ndnph::EncryptedMessage<TT::InitializationVector, AesGcm::IvLen::value, TT::AuthenticationTag,

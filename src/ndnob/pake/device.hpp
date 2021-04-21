@@ -114,7 +114,7 @@ private:
 
   ndnph::tlv::Value m_password;
   EncryptSession m_session;
-  std::unique_ptr<spake2::Context<>> m_spake2;
+  std::unique_ptr<Spake2Device> m_spake2;
 
   ndnph::Name m_lastInterestName;
   PacketInfo m_lastInterestPacketInfo;

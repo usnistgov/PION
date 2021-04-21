@@ -88,7 +88,7 @@ private:
 
   ndnph::DynamicRegion m_region;
   EncryptSession m_session;
-  std::unique_ptr<spake2::Context<>> m_spake2;
+  std::unique_ptr<Spake2Authenticator> m_spake2;
   ndnph::Data m_issued;
 };
 

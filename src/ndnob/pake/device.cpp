@@ -187,7 +187,7 @@ Device::begin(ndnph::tlv::Value password)
   std::copy(password.begin(), password.end(), passwordCopy);
   m_password = ndnph::tlv::Value(passwordCopy, password.size());
 
-  m_spake2.reset(new spake2::Context<>(spake2::Role::Bob, entropy));
+  m_spake2.reset(new Spake2Device(entropy));
   m_state = State::WaitPakeRequest;
   return true;
 }

@@ -185,7 +185,7 @@ Authenticator::begin(ndnph::tlv::Value password)
     return false;
   }
 
-  m_spake2.reset(new spake2::Context<>(spake2::Role::Alice, entropy));
+  m_spake2.reset(new Spake2Authenticator(entropy));
   uint8_t spakeIdentity[NDNPH_SHA256_LEN];
   bool ok = m_cert.computeImplicitDigest(spakeIdentity) &&
             m_spake2->start(password.begin(), password.size(), spakeIdentity, sizeof(spakeIdentity),

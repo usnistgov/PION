@@ -19,12 +19,6 @@ appendToTranscript(std::vector<uint8_t>& transcript, const uint8_t* buf, size_t 
 const ndnph::mbedtls::Mpi ContextBase::s_one{ 1 };
 const ndnph::mbedtls::Mpi ContextBase::s_minusOne{ -1 };
 
-ContextBase::ContextBase(Role role) noexcept
-  : m_role(role)
-{
-  assert(m_role == Role::Alice || m_role == Role::Bob);
-}
-
 } // namespace detail
 
 const uint8_t P256::M[] = {

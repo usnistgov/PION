@@ -47,8 +47,6 @@ appendToTranscript(std::vector<uint8_t>& transcript, const uint8_t* buf, size_t 
 class ContextBase
 {
 protected:
-  explicit ContextBase(Role role) noexcept;
-
   // Protocol state machine: each party goes through each of these states in order
   enum class State
   {
@@ -59,7 +57,6 @@ protected:
     Done,
   };
 
-  const Role m_role;
   State m_state = State::Initial;
 
   static const ndnph::mbedtls::Mpi s_one;
@@ -133,10 +130,12 @@ struct SHA512
  *
  * @sa https://tools.ietf.org/html/draft-irtf-cfrg-spake2-18
  */
-template<typename Group = P256, typename Hash = SHA256>
+template<Role role, typename Group = P256, typename Hash = SHA256>
 class Context final : detail::ContextBase
 {
 public:
+  static_assert(role == Role::Alice || role == Role::Bob, "");
+
   enum
   {
     FirstMessageSize = Group::UncompressedPointSize,
@@ -144,7 +143,7 @@ public:
     SharedKeySize = Hash::OutputSize / 2,
   };
 
-  explicit Context(Role role, mbedtls_entropy_context* entropyCtx) noexcept;
+  explicit Context(mbedtls_entropy_context* entropyCtx) noexcept;
 
   bool start(const uint8_t* pw, size_t pwLen, const uint8_t* myId = nullptr, size_t myIdLen = 0,
              const uint8_t* peerId = nullptr, size_t peerIdLen = 0, const uint8_t* aad = nullptr,
@@ -183,16 +182,14 @@ private:
   ndnph::mbedtls::EcPoint m_M;
   ndnph::mbedtls::EcPoint m_N;
 
-  std::vector<uint8_t> m_transcript; // TODO: consider making statically sized
+  std::vector<uint8_t> m_transcript;
   std::vector<uint8_t> m_info{
-    // TODO: consider making statically sized
     'C', 'o', 'n', 'f', 'i', 'r', 'm', 'a', 't', 'i', 'o', 'n', 'K', 'e', 'y', 's',
   };
 };
 
-template<typename Group, typename Hash>
-Context<Group, Hash>::Context(Role role, mbedtls_entropy_context* entropyCtx) noexcept
-  : ContextBase(role)
+template<Role role, typename Group, typename Hash>
+Context<role, Group, Hash>::Context(mbedtls_entropy_context* entropyCtx) noexcept
 {
   assert(entropyCtx != nullptr);
 
@@ -218,11 +215,11 @@ Context<Group, Hash>::Context(Role role, mbedtls_entropy_context* entropyCtx) no
   assert(ret == 0);
 }
 
-template<typename Group, typename Hash>
+template<Role role, typename Group, typename Hash>
 bool
-Context<Group, Hash>::start(const uint8_t* pw, size_t pwLen, const uint8_t* myId, size_t myIdLen,
-                            const uint8_t* peerId, size_t peerIdLen, const uint8_t* aad,
-                            size_t aadLen) noexcept
+Context<role, Group, Hash>::start(const uint8_t* pw, size_t pwLen, const uint8_t* myId,
+                                  size_t myIdLen, const uint8_t* peerId, size_t peerIdLen,
+                                  const uint8_t* aad, size_t aadLen) noexcept
 {
   // TODO: sanity-check state machine?
 
@@ -231,7 +228,7 @@ Context<Group, Hash>::start(const uint8_t* pw, size_t pwLen, const uint8_t* myId
                        myIdLen + peerIdLen +              // identities
                        Group::UncompressedPointSize * 3 + // S, T, K (points)
                        Group::ScalarSize);                // w (scalar)
-  if (m_role == Role::Alice) {
+  if (role == Role::Alice) {
     detail::appendToTranscript(m_transcript, myId, myIdLen);
     detail::appendToTranscript(m_transcript, peerId, peerIdLen);
   } else {
@@ -289,9 +286,9 @@ Context<Group, Hash>::start(const uint8_t* pw, size_t pwLen, const uint8_t* myId
   return true;
 }
 
-template<typename Group, typename Hash>
+template<Role role, typename Group, typename Hash>
 bool
-Context<Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) noexcept
+Context<role, Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) noexcept
 {
   if (m_state != State::Initial) {
     return false;
@@ -311,7 +308,7 @@ Context<Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) no
 
   ndnph::mbedtls::EcPoint wMN;
   // wMN = w * (M|N)
-  ret = mbedtls_ecp_mul(m_group, wMN, m_w, m_role == Role::Alice ? m_M : m_N,
+  ret = mbedtls_ecp_mul(m_group, wMN, m_w, role == Role::Alice ? m_M : m_N,
                         mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
@@ -342,9 +339,9 @@ Context<Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) no
   return true;
 }
 
-template<typename Group, typename Hash>
+template<Role role, typename Group, typename Hash>
 bool
-Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen) noexcept
+Context<role, Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen) noexcept
 {
   if (m_state != State::AwaitingPublicShare) {
     return false;
@@ -366,7 +363,7 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
 
   ndnph::mbedtls::EcPoint wNM;
   // wNM = w * (N|M)
-  ret = mbedtls_ecp_mul(m_group, wNM, m_w, m_role == Role::Alice ? m_N : m_M,
+  ret = mbedtls_ecp_mul(m_group, wNM, m_w, role == Role::Alice ? m_N : m_M,
                         mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
@@ -407,7 +404,7 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
   }
 
   // Finalize protocol transcript
-  if (m_role == Role::Alice) {
+  if (role == Role::Alice) {
     detail::appendToTranscript(m_transcript, m_myMsg.data(), FirstMessageSize);
     detail::appendToTranscript(m_transcript, inMsg, inMsgLen);
   } else {
@@ -485,7 +482,7 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
     return false;
   }
 
-  if (m_role == Role::Alice) {
+  if (role == Role::Alice) {
     std::memcpy(m_myMsg.data(), macA.data(), macA.size());
     std::memcpy(m_expectedMac.data(), macB.data(), macB.size());
   } else {
@@ -497,9 +494,9 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
   return true;
 }
 
-template<typename Group, typename Hash>
+template<Role role, typename Group, typename Hash>
 bool
-Context<Group, Hash>::generateSecondMessage(uint8_t* outMsg, size_t outMsgLen) noexcept
+Context<role, Group, Hash>::generateSecondMessage(uint8_t* outMsg, size_t outMsgLen) noexcept
 {
   if (m_state != State::SendingConfirmation) {
     return false;
@@ -512,9 +509,9 @@ Context<Group, Hash>::generateSecondMessage(uint8_t* outMsg, size_t outMsgLen) n
   return true;
 }
 
-template<typename Group, typename Hash>
+template<Role role, typename Group, typename Hash>
 bool
-Context<Group, Hash>::processSecondMessage(const uint8_t* inMsg, size_t inMsgLen) noexcept
+Context<role, Group, Hash>::processSecondMessage(const uint8_t* inMsg, size_t inMsgLen) noexcept
 {
   if (m_state != State::AwaitingConfirmation) {
     return false;
