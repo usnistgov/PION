@@ -212,9 +212,9 @@ Context<Group, Hash>::Context(Role role, mbedtls_entropy_context* entropyCtx) no
   assert(ret == 0);
 
   // Load protocol constants M and N
-  ret = mbedtls_ecp_point_read_binary(m_group, &m_M, Group::M, sizeof(Group::M));
+  ret = mbedtls_ecp_point_read_binary(m_group, m_M, Group::M, sizeof(Group::M));
   assert(ret == 0);
-  ret = mbedtls_ecp_point_read_binary(m_group, &m_N, Group::N, sizeof(Group::N));
+  ret = mbedtls_ecp_point_read_binary(m_group, m_N, Group::N, sizeof(Group::N));
   assert(ret == 0);
 }
 
@@ -261,12 +261,12 @@ Context<Group, Hash>::start(const uint8_t* pw, size_t pwLen, const uint8_t* myId
   }
 
   ndnph::mbedtls::Mpi pwHashScalar;
-  ret = mbedtls_mpi_read_binary(&pwHashScalar, pwHash.data(), pwHash.size());
+  ret = mbedtls_mpi_read_binary(pwHashScalar, pwHash.data(), pwHash.size());
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
-  ret = mbedtls_mpi_mod_mpi(&m_w, &pwHashScalar, &m_group->N);
+  ret = mbedtls_mpi_mod_mpi(m_w, pwHashScalar, &m_group->N);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -275,12 +275,12 @@ Context<Group, Hash>::start(const uint8_t* pw, size_t pwLen, const uint8_t* myId
   // Generate random scalar x
   ndnph::mbedtls::Mpi random;
   // NOTE: generate 8 extra bytes to avoid bias in modulo operation
-  ret = mbedtls_mpi_fill_random(&random, Group::ScalarSize + 8, mbedtls_hmac_drbg_random, m_drbg);
+  ret = mbedtls_mpi_fill_random(random, Group::ScalarSize + 8, mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
-  ret = mbedtls_mpi_mod_mpi(&m_x, &random, &m_group->N);
+  ret = mbedtls_mpi_mod_mpi(m_x, random, &m_group->N);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -303,7 +303,7 @@ Context<Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) no
   int ret;
   ndnph::mbedtls::EcPoint X;
   // X = x * P
-  ret = mbedtls_ecp_mul(m_group, &X, &m_x, &m_group->G, mbedtls_hmac_drbg_random, m_drbg);
+  ret = mbedtls_ecp_mul(m_group, X, m_x, &m_group->G, mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -311,7 +311,7 @@ Context<Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) no
 
   ndnph::mbedtls::EcPoint wMN;
   // wMN = w * (M|N)
-  ret = mbedtls_ecp_mul(m_group, &wMN, &m_w, m_role == Role::Alice ? &m_M : &m_N,
+  ret = mbedtls_ecp_mul(m_group, wMN, m_w, m_role == Role::Alice ? m_M : m_N,
                         mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
@@ -319,7 +319,7 @@ Context<Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) no
   }
 
   // S = wMN + X
-  ret = mbedtls_ecp_muladd(m_group, &m_S, &s_one, &wMN, &s_one, &X);
+  ret = mbedtls_ecp_muladd(m_group, m_S, s_one, wMN, s_one, X);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -327,7 +327,7 @@ Context<Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) no
 
   std::array<uint8_t, Group::UncompressedPointSize> binS{};
   size_t lenS = 0;
-  ret = mbedtls_ecp_point_write_binary(m_group, &m_S, MBEDTLS_ECP_PF_UNCOMPRESSED, &lenS,
+  ret = mbedtls_ecp_point_write_binary(m_group, m_S, MBEDTLS_ECP_PF_UNCOMPRESSED, &lenS,
                                        binS.data(), binS.size());
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
@@ -352,13 +352,13 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
 
   int ret;
   ndnph::mbedtls::EcPoint T;
-  ret = mbedtls_ecp_point_read_binary(m_group, &T, inMsg, inMsgLen);
+  ret = mbedtls_ecp_point_read_binary(m_group, T, inMsg, inMsgLen);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
   // Verify that the received point is on the curve
-  ret = mbedtls_ecp_check_pubkey(m_group, &T);
+  ret = mbedtls_ecp_check_pubkey(m_group, T);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -366,7 +366,7 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
 
   ndnph::mbedtls::EcPoint wNM;
   // wNM = w * (N|M)
-  ret = mbedtls_ecp_mul(m_group, &wNM, &m_w, m_role == Role::Alice ? &m_N : &m_M,
+  ret = mbedtls_ecp_mul(m_group, wNM, m_w, m_role == Role::Alice ? m_N : m_M,
                         mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
@@ -375,7 +375,7 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
 
   ndnph::mbedtls::EcPoint Y;
   // Y = T - wNM
-  ret = mbedtls_ecp_muladd(m_group, &Y, &s_one, &T, &s_minusOne, &wNM);
+  ret = mbedtls_ecp_muladd(m_group, Y, s_one, T, s_minusOne, wNM);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -384,7 +384,7 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
   ndnph::mbedtls::EcPoint K;
   // K = h * x * Y
   // NOTE: the cofactor h is 1 for NIST curves
-  ret = mbedtls_ecp_mul(m_group, &K, &m_x, &Y, mbedtls_hmac_drbg_random, m_drbg);
+  ret = mbedtls_ecp_mul(m_group, K, m_x, Y, mbedtls_hmac_drbg_random, m_drbg);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -392,7 +392,7 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
 
   std::array<uint8_t, Group::UncompressedPointSize> binK{};
   size_t lenK = 0;
-  ret = mbedtls_ecp_point_write_binary(m_group, &K, MBEDTLS_ECP_PF_UNCOMPRESSED, &lenK, binK.data(),
+  ret = mbedtls_ecp_point_write_binary(m_group, K, MBEDTLS_ECP_PF_UNCOMPRESSED, &lenK, binK.data(),
                                        binK.size());
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
@@ -400,7 +400,7 @@ Context<Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen)
   }
 
   std::array<uint8_t, Group::ScalarSize> binW{};
-  ret = mbedtls_mpi_write_binary(&m_w, binW.data(), binW.size());
+  ret = mbedtls_mpi_write_binary(m_w, binW.data(), binW.size());
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;

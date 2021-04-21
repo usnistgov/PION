@@ -16,21 +16,12 @@ appendToTranscript(std::vector<uint8_t>& transcript, const uint8_t* buf, size_t 
   transcript.insert(transcript.end(), buf, buf + buflen);
 }
 
-const ndnph::mbedtls::Mpi ContextBase::s_one;
-const ndnph::mbedtls::Mpi ContextBase::s_minusOne;
+const ndnph::mbedtls::Mpi ContextBase::s_one{ 1 };
+const ndnph::mbedtls::Mpi ContextBase::s_minusOne{ -1 };
 
 ContextBase::ContextBase(Role role) noexcept
   : m_role(role)
 {
-  static struct S
-  {
-    S()
-    {
-      mbedtls_mpi_lset(const_cast<ndnph::mbedtls::Mpi*>(&s_one), 1);
-      mbedtls_mpi_lset(const_cast<ndnph::mbedtls::Mpi*>(&s_minusOne), -1);
-    }
-  } s;
-
   assert(m_role == Role::Alice || m_role == Role::Bob);
 }
 
