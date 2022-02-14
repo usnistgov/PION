@@ -9,7 +9,7 @@
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "strict": true,
-    "target": "es2019"
+    "target": "ES2021"
   },
   "include": [
     "**/*.ts",

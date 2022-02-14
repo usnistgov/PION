@@ -1,6 +1,5 @@
+import { setTimeout as delay } from "node:timers/promises";
 import pDefer, { DeferredPromise } from "p-defer";
-// @ts-expect-error
-import { setTimeout as delay } from "timers/promises";
 
 import { Authenticator } from "./authenticator";
 import { BleBridge } from "./ble-bridge";
@@ -13,7 +12,7 @@ import { WifiStation } from "./wifi-station";
 
 async function analyzeDump(
     devicePackets: PacketMeta[],
-    dump: Dumpcap|undefined, extractArg: string,
+    dump: Dumpcap | undefined, extractArg: string,
     seq: ProtocolSequence): Promise<Run.DumpResult> {
   const result: Run.DumpResult = {
     devicePackets,
@@ -42,7 +41,7 @@ export class Run {
   private directConn?: DirectConnection;
   private directDump?: Dumpcap;
   private directDumpExtractArg = "";
-  private authenticatorConn?: Pick<Authenticator.Options, "deviceIp"|"devicePort"|"mtu">;
+  private authenticatorConn?: Pick<Authenticator.Options, "deviceIp" | "devicePort" | "mtu">;
   private authenticator?: Authenticator;
   private infraDump?: Dumpcap;
 
@@ -62,7 +61,6 @@ export class Run {
     this.device = new Device(env.deviceSerial);
     this.device.on("state", this.handleDeviceState);
     this.device.on("line", (line) => this.l.debug("device", line));
-    // eslint-disable-next-line promise/prefer-await-to-then
     void this.device.once("error").then((err) => this.fail(err));
   }
 
@@ -91,7 +89,7 @@ export class Run {
 
   private async directConnect(): Promise<void> {
     let dumpNetif!: string;
-    let dumpFilter: string|undefined;
+    let dumpFilter: string | undefined;
     if (this.device!.program.includes("direct-wifi")) {
       this.directConn = new WifiStation({
         ctrl: env.directWifiWpaCtrl,
@@ -138,7 +136,6 @@ export class Run {
       pakePassword: this.device!.password,
     });
     this.authenticator.on("line", (line) => this.l.debug("authenticator", line));
-    // eslint-disable-next-line promise/prefer-await-to-then
     void this.authenticator.once("error").then((err) => this.fail(err));
   }
 

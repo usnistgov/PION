@@ -1,6 +1,6 @@
 import { makeEnv, parsers } from "@strattadb/environment";
 import dotenv from "dotenv";
-import * as os from "os";
+import * as os from "node:os";
 
 dotenv.config();
 

@@ -82,15 +82,12 @@ jobs:
         with:
           node-version: 17
       - uses: actions/checkout@v2
-      - name: install dependencies
-        run: |
-          npm install -g pnpm
-          npm run pnpm-install
+      - run: corepack pnpm install
       - name: check code style
         run: |
-          npm run lint
+          corepack pnpm lint
           git diff --exit-code
-      - run: npm run typecheck
+      - run: corepack pnpm typecheck
   go:
     runs-on: ubuntu-20.04
     strategy:

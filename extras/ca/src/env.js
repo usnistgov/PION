@@ -1,5 +1,5 @@
 import { closeUplinks, openKeyChain, openUplinks } from "@ndn/cli-common";
-import { Certificate, generateSigningKey } from "@ndn/keychain";
+import { Certificate, createVerifier, generateSigningKey } from "@ndn/keychain";
 import { CaProfile } from "@ndn/ndncert";
 import { Data, Name } from "@ndn/packet";
 import { DataStore, PrefixRegStatic, RepoProducer } from "@ndn/repo";
@@ -79,7 +79,7 @@ export async function initEnv() {
     await fs.writeFile(env.profile, Encoder.encode(aProfile.data));
   }
   await repo.insert(aProfile.cert.data);
-  aVerifier = await aProfile.cert.createVerifier();
+  aVerifier = await createVerifier(aProfile.cert);
 }
 
 process.once("beforeExit", async () => {

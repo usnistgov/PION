@@ -1,6 +1,5 @@
 import execa from "execa";
-// @ts-expect-error
-import { setTimeout as delay } from "timers/promises";
+import { setTimeout as delay } from "node:timers/promises";
 
 import type { DirectConnection } from "./direct-connection";
 

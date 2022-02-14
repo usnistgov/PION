@@ -1,4 +1,4 @@
-import { Certificate, CertNaming } from "@ndn/keychain";
+import { Certificate, CertNaming, createVerifier } from "@ndn/keychain";
 import { Keyword } from "@ndn/naming-convention2";
 import { ServerPossessionChallenge } from "@ndn/ndncert";
 import { Data } from "@ndn/packet";
@@ -59,7 +59,7 @@ async function verifyTempCert(data) {
 
   const hCertData = await repo.get(tCert.issuer);
   const hCert = Certificate.fromData(hCertData);
-  const hVerifier = await hCert.createVerifier();
+  const hVerifier = await createVerifier(hCert);
 
   await hVerifier.verify(data);
   await aVerifier.verify(hCertData);

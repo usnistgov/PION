@@ -1,5 +1,5 @@
 .env
-.vscode
+/.vscode
 /build*
 /examples/*/config.hpp
 /extras/*/runtime
@@ -7,5 +7,6 @@
 /extras/pcapparse/pcapparse
 /extras/pcapparse/pcapparse.exe
 /subprojects/*/
+Pipfile.lock
 node_modules
 pnpm-lock.yaml

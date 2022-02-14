@@ -4,7 +4,7 @@
  * "<" indicates a packet from the device.
  * ">" indicates a packet to the device.
  */
-export type PacketDir = "<"|">";
+export type PacketDir = "<" | ">";
 
 /** Packet direction and length information. */
 export interface PacketMeta {
