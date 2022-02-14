@@ -15,7 +15,7 @@ export class Authenticator extends Emittery<Events> {
   /** Start the authenticator. */
   constructor(opts: Authenticator.Options) {
     super();
-    this.child = execa("ndnob-authenticator", [
+    this.child = execa("pion-authenticator", [
       "-P", opts.caProfile,
       "-i", "a",
       "-n", opts.deviceName,

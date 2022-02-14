@@ -1,9 +1,9 @@
-#ifndef NDNOB_PAKE_AN_HPP
-#define NDNOB_PAKE_AN_HPP
+#ifndef PION_PAKE_AN_HPP
+#define PION_PAKE_AN_HPP
 
 #include "../common.hpp"
 
-namespace ndnob {
+namespace pion {
 namespace pake {
 
 /** @brief TLV-TYPE assigned numbers. */
@@ -87,6 +87,6 @@ getAuthenticatedComponent()
 }
 
 } // namespace pake
-} // namespace ndnob
+} // namespace pion
 
-#endif // NDNOB_PAKE_AN_HPP
+#endif // PION_PAKE_AN_HPP

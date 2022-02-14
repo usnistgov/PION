@@ -95,7 +95,7 @@ sudo apt install python3-dev python3-venv libglib2.0-dev
 sudo pip install -U pipenv
 
 mkdir -p ~/code/BLE
-curl -sfL https://github.com/yoursunny/esp8266ndn/archive/main.tar.gz |\
+curl -fsLS https://github.com/yoursunny/esp8266ndn/archive/main.tar.gz |\
   tar -C ~/code/BLE -xz --strip-components=3 --wildcards 'esp8266ndn-*/extras/BLE'
 cd ~/code/BLE
 pipenv install
@@ -106,10 +106,10 @@ pipenv install
 NFD is required to accept packets on the `ap` interface and forward them between the device and the certificate authority.
 It's recommended to install NFD as a Docker container.
 
-With this repository cloned at `~/code/ndn-onboarding`, build and start NFD Docker container:
+With this repository cloned at `~/code/PION`, build and start NFD Docker container:
 
 ```bash
-cd ~/code/ndn-onboarding/extras/nfd
+cd ~/code/PION/extras/nfd
 docker build -t nfd .
 
 docker rm -f nfd

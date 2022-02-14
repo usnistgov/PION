@@ -17,7 +17,7 @@ class DeviceConn:
 
     def readline(self) -> Optional[str]:
         line = d.ser.readline()
-        if len(line) > 0 and line[-1] == 0x0A and b' [ndnob' in line:
+        if len(line) > 0 and line[-1] == 0x0A and b' [pion' in line:
             return str(line, encoding='utf8').strip()
         return None
 

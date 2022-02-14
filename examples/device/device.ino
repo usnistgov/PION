@@ -6,20 +6,20 @@ setup()
 {
   Serial.begin(115200);
   Serial.println();
-  NDNPH_LOG_LINE("ndnob.O.program", "%s %s",
-#if defined(NDNOB_DIRECT_WIFI)
+  NDNPH_LOG_LINE("pion.O.program", "%s %s",
+#if defined(PION_DIRECT_WIFI)
                  "direct-wifi",
-#elif defined(NDNOB_DIRECT_BLE)
+#elif defined(PION_DIRECT_BLE)
                  "direct-ble",
 #endif
-#if defined(NDNOB_INFRA_UDP)
+#if defined(PION_INFRA_UDP)
                  "infra-udp"
-#elif defined(NDNOB_INFRA_ETHER)
+#elif defined(PION_INFRA_ETHER)
                  "infra-ether"
 #endif
   );
-  NDNPH_LOG_LINE("ndnob.H.total", "%u", ESP.getHeapSize());
-  NDNPH_LOG_LINE("ndnob.H.free-initial", "%u", ESP.getFreeHeap());
+  NDNPH_LOG_LINE("pion.H.total", "%u", ESP.getHeapSize());
+  NDNPH_LOG_LINE("pion.H.free-initial", "%u", ESP.getFreeHeap());
 
   esp8266ndn::setLogOutput(Serial);
 
@@ -39,5 +39,5 @@ setup()
 void
 loop()
 {
-  ndnob_device_app::loop();
+  pion_device_app::loop();
 }

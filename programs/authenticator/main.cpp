@@ -1,4 +1,4 @@
-#include "ndn-onboarding.h"
+#include "pion.h"
 
 static ndnph::Face& face = ndnph::cli::openUplink();
 static ndnph::StaticRegion<65536> region;
@@ -68,7 +68,7 @@ main(int argc, char** argv)
     }
   }
 
-  ndnob::pake::Authenticator authenticator(ndnob::pake::Authenticator::Options{
+  pion::pake::Authenticator authenticator(pion::pake::Authenticator::Options{
     face : face,
     caProfile : caProfile,
     cert : cert,
@@ -86,11 +86,11 @@ main(int argc, char** argv)
     face.loop();
 
     auto st = authenticator.getState();
-    NDNOB_LOG_STATE("pake-authenticator", st);
+    PION_LOG_STATE("pake-authenticator", st);
     switch (st) {
-      case ndnob::pake::Authenticator::State::Success:
+      case pion::pake::Authenticator::State::Success:
         return 0;
-      case ndnob::pake::Authenticator::State::Failure:
+      case pion::pake::Authenticator::State::Failure:
         return 1;
       default:
         break;

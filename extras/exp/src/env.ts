@@ -6,82 +6,82 @@ dotenv.config();
 
 export const env = makeEnv({
   deviceSerial: {
-    envVarName: "NDNOB_DEVICE_SERIAL",
+    envVarName: "PION_DEVICE_SERIAL",
     parser: parsers.string,
     required: true,
   },
   caProfile: {
-    envVarName: "NDNOB_CA_PROFILE",
+    envVarName: "PION_CA_PROFILE",
     parser: parsers.string,
     required: true,
   },
   keychain: {
-    envVarName: "NDNOB_AUTH_KEYCHAIN",
+    envVarName: "PION_AUTH_KEYCHAIN",
     parser: parsers.string,
     required: true,
   },
   networkPrefix: {
-    envVarName: "NDNOB_NETWORK_PREFIX",
+    envVarName: "PION_NETWORK_PREFIX",
     parser: parsers.string,
     required: true,
   },
   directWifiWpaCtrl: {
-    envVarName: "NDNOB_DIRECT_WIFI_WPA_CTRL",
+    envVarName: "PION_DIRECT_WIFI_WPA_CTRL",
     parser: parsers.string,
     required: true,
   },
   directWifiNetif: {
-    envVarName: "NDNOB_DIRECT_WIFI_NETIF",
+    envVarName: "PION_DIRECT_WIFI_NETIF",
     parser: parsers.string,
     required: true,
   },
   directWifiSsid: {
-    envVarName: "NDNOB_DIRECT_WIFI_SSID",
+    envVarName: "PION_DIRECT_WIFI_SSID",
     parser: parsers.string,
     required: true,
   },
   directWifiPassphrase: {
-    envVarName: "NDNOB_DIRECT_WIFI_PASS",
+    envVarName: "PION_DIRECT_WIFI_PASS",
     parser: parsers.string,
     required: true,
   },
   directWifiDeviceIp: {
-    envVarName: "NDNOB_DIRECT_WIFI_DEVICE_IP",
+    envVarName: "PION_DIRECT_WIFI_DEVICE_IP",
     parser: parsers.ipAddress,
     required: true,
   },
   directWifiAuthIp: {
-    envVarName: "NDNOB_DIRECT_WIFI_AUTH_IP",
+    envVarName: "PION_DIRECT_WIFI_AUTH_IP",
     parser: parsers.ipAddress,
     required: true,
   },
   directWifiSubnet: {
-    envVarName: "NDNOB_DIRECT_WIFI_SUBNET",
+    envVarName: "PION_DIRECT_WIFI_SUBNET",
     parser: parsers.positiveInteger,
     required: true,
   },
   directBleBridgePath: {
-    envVarName: "NDNOB_DIRECT_BLE_BRIDGE_PATH",
+    envVarName: "PION_DIRECT_BLE_BRIDGE_PATH",
     parser: parsers.string,
     required: true,
   },
   infraWifiNetif: {
-    envVarName: "NDNOB_INFRA_WIFI_NETIF",
+    envVarName: "PION_INFRA_WIFI_NETIF",
     parser: parsers.string,
     required: true,
   },
   infraWifiSsid: {
-    envVarName: "NDNOB_INFRA_WIFI_SSID",
+    envVarName: "PION_INFRA_WIFI_SSID",
     parser: parsers.string,
     required: true,
   },
   infraWifiPassphrase: {
-    envVarName: "NDNOB_INFRA_WIFI_PASS",
+    envVarName: "PION_INFRA_WIFI_PASS",
     parser: parsers.string,
     required: true,
   },
   infraWifiGatewayIp: {
-    envVarName: "NDNOB_INFRA_WIFI_GW_IP",
+    envVarName: "PION_INFRA_WIFI_GW_IP",
     parser: parsers.ipAddress,
     required: true,
   },

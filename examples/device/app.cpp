@@ -1,6 +1,6 @@
 #include "app.hpp"
 
-namespace ndnob_device_app {
+namespace pion_device_app {
 
 State state = State::Idle;
 uint32_t minFreeHeap = std::numeric_limits<uint32_t>::max();
@@ -11,8 +11,8 @@ loop()
   {
     uint32_t freeHeap = ESP.getFreeHeap();
     minFreeHeap = std::min(minFreeHeap, freeHeap);
-    if (NDNOB_LOG_STATE("app", state)) {
-      NDNPH_LOG_LINE("ndnob.H.free-prev-state", "%u", minFreeHeap);
+    if (PION_LOG_STATE("app", state)) {
+      NDNPH_LOG_LINE("pion.H.free-prev-state", "%u", minFreeHeap);
       minFreeHeap = freeHeap;
     }
   }
@@ -47,14 +47,14 @@ loop()
       break;
     }
     case State::Success: {
-      NDNPH_LOG_MSG("ndnob.O.cert", "");
+      NDNPH_LOG_MSG("pion.O.cert", "");
       Serial.println(getDeviceCert().getName());
       // fallthrough
     }
     case State::Failure: {
       deletePakeDevice();
       deleteNdncert();
-      NDNPH_LOG_LINE("ndnob.H.free-final", "%u", ESP.getFreeHeap());
+      NDNPH_LOG_LINE("pion.H.free-final", "%u", ESP.getFreeHeap());
       state = State::Final;
       break;
     }
@@ -65,4 +65,4 @@ loop()
   }
 }
 
-} // namespace ndnob_device_app
+} // namespace pion_device_app

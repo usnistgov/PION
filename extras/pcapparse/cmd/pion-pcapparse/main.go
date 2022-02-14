@@ -1,4 +1,4 @@
-// Command ndnob-pcapparse extracts information from ndn-onboarding packet trace.
+// Command pion-pcapparse extracts information from PION packet trace.
 package main
 
 import (
@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/gopacket/pcapgo"
 	"github.com/urfave/cli/v2"
-	"ndn-onboarding.invalid/pcapparse/parser"
+	"github.com/usnistgov/PION/extras/pcapparse/parser"
 )
 
 func main() {

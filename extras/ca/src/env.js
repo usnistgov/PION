@@ -16,17 +16,17 @@ dotenv.config();
 
 export const env = makeEnv({
   profile: {
-    envVarName: "NDNOB_CA_PROFILE",
+    envVarName: "PION_CA_PROFILE",
     parser: parsers.string,
     required: true,
   },
   repo: {
-    envVarName: "NDNOB_REPO",
+    envVarName: "PION_REPO",
     parser: parsers.string,
     required: true,
   },
   networkPrefix: {
-    envVarName: "NDNOB_NETWORK_PREFIX",
+    envVarName: "PION_NETWORK_PREFIX",
     parser: parsers.string,
     required: true,
   },

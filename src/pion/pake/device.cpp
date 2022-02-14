@@ -1,6 +1,6 @@
 #include "device.hpp"
 
-namespace ndnob {
+namespace pion {
 namespace pake {
 
 static mbed::Entropy entropy;
@@ -445,4 +445,4 @@ Device::finishSession()
 }
 
 } // namespace pake
-} // namespace ndnob
+} // namespace pion

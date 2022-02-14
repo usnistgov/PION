@@ -1,9 +1,9 @@
-#ifndef NDNOB_PAKE_DEVICE_HPP
-#define NDNOB_PAKE_DEVICE_HPP
+#ifndef PION_PAKE_DEVICE_HPP
+#define PION_PAKE_DEVICE_HPP
 
 #include "packet.hpp"
 
-namespace ndnob {
+namespace pion {
 namespace pake {
 
 /** @brief NDN onboarding protocol - PAKE stage, device side. */
@@ -131,6 +131,6 @@ private:
 };
 
 } // namespace pake
-} // namespace ndnob
+} // namespace pion
 
-#endif // NDNOB_PAKE_DEVICE_HPP
+#endif // PION_PAKE_DEVICE_HPP

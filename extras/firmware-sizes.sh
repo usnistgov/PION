@@ -85,16 +85,16 @@ edit_config_macros $SKETCH_BASELINE \
 build_and_measure $SKETCH_BASELINE ${BUILD}/baseline-ble-wifi '["baseline-ble-wifi"]'
 
 for DIRECT in wifi ble; do
-  edit_config_macros $SKETCH_DEVICE -NDNOB_DIRECT_WIFI -NDNOB_DIRECT_BLE
-  edit_config_macros $SKETCH_DEVICE +NDNOB_DIRECT_${DIRECT^^}
+  edit_config_macros $SKETCH_DEVICE -PION_DIRECT_WIFI -PION_DIRECT_BLE
+  edit_config_macros $SKETCH_DEVICE +PION_DIRECT_${DIRECT^^}
   for INFRA in udp ether; do
-    edit_config_macros $SKETCH_DEVICE -NDNOB_INFRA_UDP -NDNOB_INFRA_ETHER
-    edit_config_macros $SKETCH_DEVICE +NDNOB_INFRA_${INFRA^^}
+    edit_config_macros $SKETCH_DEVICE -PION_INFRA_UDP -PION_INFRA_ETHER
+    edit_config_macros $SKETCH_DEVICE +PION_INFRA_${INFRA^^}
     for INCLUDE_STEPS in connect pake full; do
       case $INCLUDE_STEPS in
-        connect) edit_config_macros $SKETCH_DEVICE +NDNOB_SKIP_PAKE +NDNOB_SKIP_NDNCERT;;
-        pake   ) edit_config_macros $SKETCH_DEVICE -NDNOB_SKIP_PAKE +NDNOB_SKIP_NDNCERT;;
-        full   ) edit_config_macros $SKETCH_DEVICE -NDNOB_SKIP_PAKE -NDNOB_SKIP_NDNCERT;;
+        connect) edit_config_macros $SKETCH_DEVICE +PION_SKIP_PAKE +PION_SKIP_NDNCERT;;
+        pake   ) edit_config_macros $SKETCH_DEVICE -PION_SKIP_PAKE +PION_SKIP_NDNCERT;;
+        full   ) edit_config_macros $SKETCH_DEVICE -PION_SKIP_PAKE -PION_SKIP_NDNCERT;;
       esac
       build_and_measure $SKETCH_DEVICE \
         ${BUILD}/${DIRECT}-${INFRA}-${INCLUDE_STEPS} \

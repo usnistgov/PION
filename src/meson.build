@@ -1,3 +1,3 @@
-ndnob_files = files(
-'ndnob/pake/authenticator.cpp','ndnob/pake/device.cpp','ndnob/pake/packet.cpp','ndnob/spake2/spake2.cpp'
+pion_files = files(
+'pion/pake/authenticator.cpp','pion/pake/device.cpp','pion/pake/packet.cpp','pion/spake2/spake2.cpp'
 )

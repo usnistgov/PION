@@ -21,7 +21,7 @@ NDNph = declare_dependency(
 mbedcrypto = cpp.find_library('mbedcrypto', has_headers: ['mbedtls/ecdh.h'])
 
 subdir('src')
-ndnob_lib = static_library('ndnob', ndnob_files, dependencies: [NDNph])
+pion_lib = static_library('pion', pion_files, dependencies: [NDNph])
 
 lib_dep = declare_dependency(
   include_directories: include_directories('src'),

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"/..
-NDNOB_BUILDDIR=build.programs
+PION_BUILDDIR=build.programs
 
 OSREL=$(lsb_release -sc)
 if [[ $OSREL != 'focal' ]]; then
@@ -16,8 +16,8 @@ if ! which meson >/dev/null; then
   sudo pip install -U meson
 fi
 
-if ! [[ -f ${NDNOB_BUILDDIR}/build.ninja ]]; then
-  meson ${NDNOB_BUILDDIR}
+if ! [[ -f ${PION_BUILDDIR}/build.ninja ]]; then
+  meson ${PION_BUILDDIR}
 fi
-ninja -C ${NDNOB_BUILDDIR} -j1
-find ./${NDNOB_BUILDDIR}/programs -maxdepth 1 -type f | sudo xargs install -t /usr/local/bin
+ninja -C ${PION_BUILDDIR} -j1
+find ./${PION_BUILDDIR}/programs -maxdepth 1 -type f | sudo xargs install -t /usr/local/bin

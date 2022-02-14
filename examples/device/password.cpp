@@ -1,6 +1,6 @@
 #include "app.hpp"
 
-namespace ndnob_device_app {
+namespace pion_device_app {
 
 static constexpr size_t passwordL = 8;
 static uint8_t passwordV[passwordL + 1];
@@ -19,7 +19,7 @@ doMakePassword()
       ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")[passwordV[i] % 0x40];
   }
 
-  NDNPH_LOG_LINE("ndnob.O.password", "%s", reinterpret_cast<const char*>(passwordV));
+  NDNPH_LOG_LINE("pion.O.password", "%s", reinterpret_cast<const char*>(passwordV));
   gotoState(State::WaitDirectConnect);
 }
 
@@ -29,4 +29,4 @@ getPassword()
   return ndnph::tlv::Value(passwordV, passwordL);
 }
 
-} // namespace ndnob_device_app
+} // namespace pion_device_app

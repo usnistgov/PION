@@ -1,6 +1,6 @@
 #include "authenticator.hpp"
 
-namespace ndnob {
+namespace pion {
 namespace pake {
 
 static mbed::Entropy entropy;
@@ -342,4 +342,4 @@ Authenticator::processInterest(ndnph::Interest interest)
 }
 
 } // namespace pake
-} // namespace ndnob
+} // namespace pion

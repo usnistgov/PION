@@ -1,6 +1,6 @@
 #include "packet.hpp"
 
-namespace ndnob {
+namespace pion {
 namespace pake {
 
 void
@@ -70,4 +70,4 @@ computeTempSubjectName(ndnph::Region& region, ndnph::Name authenticatorCertName,
 }
 
 } // namespace pake
-} // namespace ndnob
+} // namespace pion

@@ -33,13 +33,13 @@ export class Dumpcap {
     this.pcap = result.stdout;
   }
 
-  /** Extract PacketMeta from `this.pcap` with ndnob-parsepcap program. */
+  /** Extract PacketMeta from `this.pcap` with pion-parsepcap program. */
   public async extract(arg: string): Promise<PacketMeta[]> {
     if (!this.pcap) {
       return [];
     }
 
-    const result = await execa("ndnob-pcapparse", [arg], {
+    const result = await execa("pion-pcapparse", [arg], {
       encoding: "utf-8",
       input: this.pcap,
       stdout: "pipe",

@@ -1,11 +1,11 @@
-#ifndef NDNOB_DEVICE_APP_HPP
-#define NDNOB_DEVICE_APP_HPP
+#ifndef PION_DEVICE_APP_HPP
+#define PION_DEVICE_APP_HPP
 
 #include "config.hpp"
 #include <WiFi.h>
-#include <ndn-onboarding.h>
+#include <pion.h>
 
-namespace ndnob_device_app {
+namespace pion_device_app {
 
 enum class State
 {
@@ -62,7 +62,7 @@ waitPake();
 void
 doDirectDisconnect();
 
-const ndnob::pake::Device*
+const pion::pake::Device*
 getPakeDevice();
 
 void
@@ -86,6 +86,6 @@ getDeviceSigner();
 void
 runPingServer();
 
-} // namespace ndnob_device_app
+} // namespace pion_device_app
 
-#endif // NDNOB_DEVICE_APP_HPP
+#endif // PION_DEVICE_APP_HPP

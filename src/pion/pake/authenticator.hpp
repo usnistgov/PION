@@ -1,9 +1,9 @@
-#ifndef NDNOB_PAKE_AUTHENTICATOR_HPP
-#define NDNOB_PAKE_AUTHENTICATOR_HPP
+#ifndef PION_PAKE_AUTHENTICATOR_HPP
+#define PION_PAKE_AUTHENTICATOR_HPP
 
 #include "packet.hpp"
 
-namespace ndnob {
+namespace pion {
 namespace pake {
 
 /** @brief NDN onboarding protocol - PAKE stage, authenticator side. */
@@ -93,6 +93,6 @@ private:
 };
 
 } // namespace pake
-} // namespace ndnob
+} // namespace pion
 
-#endif // NDNOB_PAKE_AUTHENTICATOR_HPP
+#endif // PION_PAKE_AUTHENTICATOR_HPP

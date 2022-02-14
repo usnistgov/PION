@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: NIST-PD
 
-#ifndef NDNOB_SPAKE2_SPAKE2_HPP
-#define NDNOB_SPAKE2_SPAKE2_HPP
+#ifndef PION_SPAKE2_SPAKE2_HPP
+#define PION_SPAKE2_SPAKE2_HPP
 
 #include "mbedtls-wrappers.hpp"
 
@@ -529,4 +529,4 @@ Context<role, Group, Hash>::processSecondMessage(const uint8_t* inMsg, size_t in
 
 } // namespace spake2
 
-#endif // NDNOB_SPAKE2_SPAKE2_HPP
+#endif // PION_SPAKE2_SPAKE2_HPP

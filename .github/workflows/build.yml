@@ -48,7 +48,7 @@ jobs:
         run: |
           mkdir -p $HOME/Arduino/libraries
           cd $HOME/Arduino/libraries
-          ln -s $GITHUB_WORKSPACE ndn-onboarding
+          ln -s $GITHUB_WORKSPACE PION
           mkdir NDNph esp8266ndn
           curl -fsLS https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz | tar -C NDNph -xz --strip-components=1
           curl -fsLS https://github.com/yoursunny/esp8266ndn/archive/${ESP8266NDN_VERSION}.tar.gz | tar -C esp8266ndn -xz --strip-components=1
@@ -100,6 +100,6 @@ jobs:
     steps:
       - uses: actions/setup-go@v2
         with:
-          go-version: ^1.16
+          go-version: ^1.17
       - uses: actions/checkout@v2
-      - run: go install ./cmd/ndnob-pcapparse
+      - run: go install ./cmd/pion-pcapparse

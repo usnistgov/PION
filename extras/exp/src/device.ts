@@ -26,7 +26,7 @@ class DeviceLogLine {
 
     this.hostTime = Number.parseInt(tokens[0]!, 10);
     this.deviceTime = Number.parseInt(tokens[1]!, 10);
-    this.category = tokens[2]!.replace(/^\[ndnob\.|]$/g, "");
+    this.category = tokens[2]!.replace(/^\[pion\.|]$/g, "");
     this.value = tokens.slice(3).join(" ");
   }
 

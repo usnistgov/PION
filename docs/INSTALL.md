@@ -9,7 +9,7 @@ It also contains certain instrumentation features.
 
 To install the program to a microcontroller:
 
-1. Install Arduino IDE, [Arduino core for the ESP32](https://github.com/espressif/arduino-esp32) v1.0.6, and [esp8266ndn](https://github.com/yoursunny/esp8266ndn) library.
+1. Install Arduino IDE, [Arduino core for the ESP32](https://github.com/espressif/arduino-esp32) v2.0.2, and [esp8266ndn](https://github.com/yoursunny/esp8266ndn) library.
 2. Clone this repository to `$HOME/Arduino/libraries`.
 3. Copy `sample.config.hpp` to `config.hpp`, and modify as necessary.
 4. In Arduino Tools menu, select "Board: ESP32 Dev Module" and "Partition Scheme: No OTA (2MB APP/2MB FATFS)".
@@ -26,14 +26,14 @@ The [certificate authority](../extras/ca) is a Node.js program.
 
 To install the program:
 
-1. Install Node.js 16.x with [nvm](https://github.com/nvm-sh/nvm).
-2. `npm install`.
+1. Install Node.js 17.x with [nvm](https://github.com/nvm-sh/nvm).
+2. `corepack pnpm install`.
 3. Modify `.env` as necessary.
 
 To start the program:
 
-* `npm start -- --nop` enables "nop" challenge, for obtaining authenticator certificate.
-* `npm start` enables "possession" challenge only, for normal operation.
+* `corepack pnpm start -- --nop` enables "nop" challenge, for obtaining authenticator certificate.
+* `corepack pnpm start` enables "possession" challenge only, for normal operation.
 
 ## PCAP Parser
 
@@ -41,8 +41,8 @@ To start the program:
 
 To install the program:
 
-1. Install Go 1.16 or higher.
-2. `go install ./cmd/ndnob-pcapparse`.
+1. Install Go 1.17 or higher.
+2. `go install ./cmd/pion-pcapparse`.
 
 ## Experiment Script
 

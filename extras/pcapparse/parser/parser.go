@@ -1,4 +1,4 @@
-// Package parser provides a parser for ndn-onboarding packet trace.
+// Package parser provides a parser for PION packet trace.
 package parser
 
 import (
@@ -25,7 +25,7 @@ func (dir Direction) String() string {
 	return "?"
 }
 
-// Parser parses a captured packet in ndn-onboarding experiment.
+// Parser parses a captured packet in PION experiment.
 type Parser struct {
 	matcher Matcher
 	dlp     *gopacket.DecodingLayerParser

@@ -1,6 +1,6 @@
 #include "app.hpp"
 
-namespace ndnob_device_app {
+namespace pion_device_app {
 
 class FragReass
 {
@@ -19,26 +19,26 @@ private:
   ndnph::lp::Reassembler m_reassembler;
 };
 
-#if defined(NDNOB_DIRECT_WIFI)
+#if defined(PION_DIRECT_WIFI)
 static std::unique_ptr<esp8266ndn::UdpTransport> transport;
-#elif defined(NDNOB_DIRECT_BLE)
+#elif defined(PION_DIRECT_BLE)
 static std::unique_ptr<esp8266ndn::BleServerTransport> transport;
 static std::unique_ptr<FragReass> fragReass;
 #else
-#error "need either NDNOB_DIRECT_WIFI or NDNOB_DIRECT_BLE"
+#error "need either PION_DIRECT_WIFI or PION_DIRECT_BLE"
 #endif
 static std::unique_ptr<ndnph::transport::Tracer> transportTracer;
 static std::unique_ptr<ndnph::Face> face;
-static std::unique_ptr<ndnob::pake::Device> device;
+static std::unique_ptr<pion::pake::Device> device;
 
 void
 doDirectConnect()
 {
   GotoState gotoState;
 
-#if defined(NDNOB_DIRECT_WIFI)
-  WiFi.softAP(NDNOB_DIRECT_AP_SSID, NDNOB_DIRECT_AP_PASS, 1, 0, 1);
-  NDNPH_LOG_MSG("ndnob.O.WiFi-BSSID", "");
+#if defined(PION_DIRECT_WIFI)
+  WiFi.softAP(PION_DIRECT_AP_SSID, PION_DIRECT_AP_PASS, 1, 0, 1);
+  NDNPH_LOG_MSG("pion.O.WiFi-BSSID", "");
   Serial.println(WiFi.softAPmacAddress());
 
   while (WiFi.softAPgetStationNum() == 0) {
@@ -47,68 +47,68 @@ doDirectConnect()
 
   transport.reset(new esp8266ndn::UdpTransport);
   if (!transport->beginListen(6363, WiFi.softAPIP())) {
-    NDNOB_LOG_ERR("transport.beginListen error");
+    PION_LOG_ERR("transport.beginListen error");
     return;
   }
-#elif defined(NDNOB_DIRECT_BLE)
+#elif defined(PION_DIRECT_BLE)
   transport.reset(new esp8266ndn::BleServerTransport);
-  if (!transport->begin(NDNOB_DIRECT_BLE_NAME)) {
-    NDNOB_LOG_ERR("transport.begin error");
+  if (!transport->begin(PION_DIRECT_BLE_NAME)) {
+    PION_LOG_ERR("transport.begin error");
     return;
   }
 
-  NDNPH_LOG_MSG("ndnob.O.BLE-MAC", "");
+  NDNPH_LOG_MSG("pion.O.BLE-MAC", "");
   Serial.println(transport->getAddr());
-  NDNPH_LOG_LINE("ndnob.O.BLE-MTU", "%d\n", static_cast<int>(transport->getMtu()));
+  NDNPH_LOG_LINE("pion.O.BLE-MTU", "%d\n", static_cast<int>(transport->getMtu()));
 
   while (!transport->isUp()) {
     delay(100);
   }
 #endif
 
-  transportTracer.reset(new ndnph::transport::Tracer(*transport, "ndnob.T.direct"));
+  transportTracer.reset(new ndnph::transport::Tracer(*transport, "pion.T.direct"));
   face.reset(new ndnph::Face(*transportTracer));
-#if defined(NDNOB_DIRECT_BLE)
+#if defined(PION_DIRECT_BLE)
   fragReass.reset(new FragReass(*face, transport->getMtu()));
 #endif
   gotoState(State::WaitPake);
 }
 
-#ifndef NDNOB_SKIP_PAKE
+#ifndef PION_SKIP_PAKE
 static bool
 initPake()
 {
-  device.reset(new ndnob::pake::Device(ndnob::pake::Device::Options{
+  device.reset(new pion::pake::Device(pion::pake::Device::Options{
     face : *face,
   }));
   if (!device->begin(getPassword())) {
-    NDNOB_LOG_ERR("device.begin error");
+    PION_LOG_ERR("device.begin error");
     return false;
   }
   return true;
 }
-#endif // NDNOB_SKIP_PAKE
+#endif // PION_SKIP_PAKE
 
 void
 waitPake()
 {
   face->loop();
 
-#ifndef NDNOB_SKIP_PAKE
+#ifndef PION_SKIP_PAKE
   if (device == nullptr && !initPake()) {
     state = State::Failure;
     return;
   }
 
   auto deviceState = device->getState();
-  NDNOB_LOG_STATE("pake-device", deviceState);
+  PION_LOG_STATE("pake-device", deviceState);
   switch (deviceState) {
-    case ndnob::pake::Device::State::Success: {
+    case pion::pake::Device::State::Success: {
       state = State::WaitDirectDisconnect;
       break;
     }
-    case ndnob::pake::Device::State::Failure: {
-      NDNOB_LOG_ERR("pake-device failure");
+    case pion::pake::Device::State::Failure: {
+      PION_LOG_ERR("pake-device failure");
       state = State::Failure;
       break;
     }
@@ -118,7 +118,7 @@ waitPake()
   }
 #else
   state = State::WaitDirectDisconnect;
-#endif // NDNOB_SKIP_PAKE
+#endif // PION_SKIP_PAKE
 }
 
 void
@@ -128,15 +128,15 @@ doDirectDisconnect()
     face->loop();
     delay(100);
   }
-#ifndef NDNOB_SKIP_PAKE
+#ifndef PION_SKIP_PAKE
   face->removeHandler(*device);
 #endif
   face.reset();
 
-#if defined(NDNOB_DIRECT_WIFI)
+#if defined(PION_DIRECT_WIFI)
   WiFi.softAPdisconnect(true);
   delay(4000);
-#elif defined(NDNOB_DIRECT_BLE)
+#elif defined(PION_DIRECT_BLE)
   ::BLEDevice::deinit(true);
   fragReass.reset();
 #endif
@@ -146,7 +146,7 @@ doDirectDisconnect()
   state = State::WaitInfraConnect;
 }
 
-const ndnob::pake::Device*
+const pion::pake::Device*
 getPakeDevice()
 {
   return device.get();
@@ -158,4 +158,4 @@ deletePakeDevice()
   device.reset();
 }
 
-} // namespace ndnob_device_app
+} // namespace pion_device_app

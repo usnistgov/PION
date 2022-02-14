@@ -1,10 +1,10 @@
-#ifndef NDNOB_PAKE_PACKET_HPP
-#define NDNOB_PAKE_PACKET_HPP
+#ifndef PION_PAKE_PACKET_HPP
+#define PION_PAKE_PACKET_HPP
 
 #include "../spake2/spake2.hpp"
 #include "an.hpp"
 
-namespace ndnob {
+namespace pion {
 namespace pake {
 
 using Spake2Authenticator = spake2::Context<spake2::Role::Alice>;
@@ -17,7 +17,7 @@ namespace packet_struct {
  * @pre @c p is a struct in context.
  * @param field field name.
  */
-#define NDNOB_PACKET_PRINT_FIELD_HEX(field)                                                        \
+#define PION_PACKET_PRINT_FIELD_HEX(field)                                                         \
   do {                                                                                             \
     os << #field "=";                                                                              \
     for (size_t i = 0; i < sizeof(p.field); ++i) {                                                 \
@@ -36,7 +36,7 @@ struct PakeRequest
   friend std::ostream& operator<<(std::ostream& os, const PakeRequest& p)
   {
     os << "PakeRequest(";
-    NDNOB_PACKET_PRINT_FIELD_HEX(spake2pa);
+    PION_PACKET_PRINT_FIELD_HEX(spake2pa);
     os << ",authenticatorCertName=" << p.authenticatorCertName;
     return os << ")";
   }
@@ -52,9 +52,9 @@ struct PakeResponse
   friend std::ostream& operator<<(std::ostream& os, const PakeResponse& p)
   {
     os << "PakeResponse(";
-    NDNOB_PACKET_PRINT_FIELD_HEX(spake2pb);
+    PION_PACKET_PRINT_FIELD_HEX(spake2pb);
     os << ",";
-    NDNOB_PACKET_PRINT_FIELD_HEX(spake2cb);
+    PION_PACKET_PRINT_FIELD_HEX(spake2cb);
     return os << ")";
   }
 #endif // NDNPH_PRINT_OSTREAM
@@ -72,7 +72,7 @@ struct ConfirmRequest
   friend std::ostream& operator<<(std::ostream& os, const ConfirmRequest& p)
   {
     os << "ConfirmRequest(";
-    NDNOB_PACKET_PRINT_FIELD_HEX(spake2ca);
+    PION_PACKET_PRINT_FIELD_HEX(spake2ca);
     os << ",nc.size=" << p.nc.size();
     os << ",caProfileName=" << p.caProfileName;
     os << ",deviceName=" << p.deviceName;
@@ -121,7 +121,7 @@ struct CredentialResponse
 #endif // NDNPH_PRINT_OSTREAM
 };
 
-#undef NDNOB_PACKET_PRINT_FIELD_HEX
+#undef PION_PACKET_PRINT_FIELD_HEX
 
 } // namespace packet_struct
 
@@ -194,6 +194,6 @@ using TempCertValidity = std::integral_constant<int, 300>;
 using InterestLifetime = std::integral_constant<int, 10000>;
 
 } // namespace pake
-} // namespace ndnob
+} // namespace pion
 
-#endif // NDNOB_PAKE_PACKET_HPP
+#endif // PION_PAKE_PACKET_HPP
