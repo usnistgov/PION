@@ -8,14 +8,14 @@ const output = ndjson.stringify();
 output.pipe(process.stdout);
 
 (async () => {
-const args = yargs(hideBin(process.argv))
+const args = await yargs(hideBin(process.argv))
   .scriptName("pion-exp")
   .option("count", {
     default: 1,
-    desc: "repeat experiment X times",
+    desc: "repeat experiment N times",
     type: "number",
   })
-  .parseSync();
+  .parse();
 
 for (let i = 0; i < args.count; ++i) {
   const run = new Run();

@@ -10,7 +10,7 @@ cpp = meson.get_compiler('cpp')
 
 subproject('NDNph', default_options: [
   'unittest=disabled',
-  'programs=disabled',
+  'programs=enabled',
 ])
 NDNph_lib = dependency('NDNph')
 NDNph = declare_dependency(

@@ -32,8 +32,8 @@ To install the program:
 
 To start the program:
 
-* `corepack pnpm start -- --nop` enables "nop" challenge, for obtaining authenticator certificate.
-* `corepack pnpm start` enables "possession" challenge only, for normal operation.
+* `corepack pnpm start -s -- --nop` enables "nop" challenge, for obtaining authenticator certificate.
+* `corepack pnpm start -s` enables "possession" challenge only, for normal operation.
 
 ## PCAP Parser
 
@@ -56,7 +56,8 @@ To run the experiment:
 2. Install the authenticator and the PCAP parser.
 3. Create an authenticator certificate (see below).
 4. Start the certificate authority normally.
-5. `npm start -s -- --count N` runs the experiment N times, default is 1.
+5. `pipenv install`.
+6. `corepack pnpm start -s -- --count N` runs the experiment N times, default is 1.
 
 To create an authenticator certificate, start the certificate authority with "nop" challenge enabled, then:
 

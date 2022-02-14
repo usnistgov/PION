@@ -1,19 +1,22 @@
 import { Server, ServerNopChallenge } from "@ndn/ndncert";
-import { hideBin } from "yargs/helpers";
-import yargs from "yargs/yargs";
+import { createRequire } from "node:module";
 
 import { makePossessionChallenge } from "./challenge.js";
 import { aProfile, aSigner, initEnv, repo } from "./env.js";
 
+const require = createRequire(import.meta.url);
+const yargs = require("yargs/yargs");
+const { hideBin } = require("yargs/helpers");
+
 (async () => {
-const args = yargs(hideBin(process.argv))
+const args = await yargs(hideBin(process.argv))
   .scriptName("pion-ca")
   .option("nop", {
     default: false,
     desc: "enable 'nop' challenge (for issuing authenticator certificate)",
     type: "boolean",
   })
-  .parseSync();
+  .parse();
 
 await initEnv();
 

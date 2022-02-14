@@ -26,5 +26,4 @@ nfdconfedit -p face_system.ether.whitelist.ifname -v ap
 nfdconfedit -d rib.auto_prefix_propagate
 
 chown -R ndn:ndn /var/lib/ndn/nfd
-( /connect.sh & )
 exec /usr/bin/nfd

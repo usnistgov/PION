@@ -20,4 +20,4 @@ if ! [[ -f ${PION_BUILDDIR}/build.ninja ]]; then
   meson ${PION_BUILDDIR}
 fi
 ninja -C ${PION_BUILDDIR} -j1
-find ./${PION_BUILDDIR}/programs -maxdepth 1 -type f | sudo xargs install -t /usr/local/bin
+find ./${PION_BUILDDIR}/programs ./${PION_BUILDDIR}/subprojects/NDNph/programs -maxdepth 1 -type f | sudo xargs install -t /usr/local/bin
