@@ -14,6 +14,9 @@ This page explains how the system was setup.
 |-----| WiFi / BLE
 ```
 
+> Certain commercial entities, equipment, or materials may be identified in this document in order to describe an experimental procedure or concept adequately.
+> Such identification is not intended to imply recommendation or endorsement by the National Institute of Standards and Technology, nor is it intended to imply that the entities, materials, or equipment are necessarily the best available for the purpose.
+
 ## Operating System Setup
 
 The RPi is running Ubuntu 20.04 Server, 32-bit ARMv7.
