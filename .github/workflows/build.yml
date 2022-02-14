@@ -9,28 +9,18 @@ jobs:
     steps:
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: '3.9'
       - name: install dependencies
         run: |
-          sudo apt-get install --no-install-recommends clang-format-8 libboost-dev libmbedtls-dev ninja-build
+          sudo apt-get install --no-install-recommends clang-format-11 libboost-dev libmbedtls-dev ninja-build
           python -m pip install --upgrade pip
           pip install meson
-      - name: install NDNph
-        run: |
-          mkdir -p $HOME/NDNph
-          curl -sfL https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz | tar -C $HOME/NDNph -xz --strip-components=1
-          cd $HOME/NDNph
-          meson build -Dunittest=disabled -Dprograms=disabled
-          ninja -C build
-          sudo ninja -C build install
-        env:
-          NDNPH_VERSION: develop
       - uses: actions/checkout@v2
       - name: check meson.build lists and code style
         run: |
           mk/update-list.sh
           mk/format-code.sh
-          [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
+          git diff --exit-code
       - name: build CLI programs
         run: |
           meson build -Dbuildtype=debug -Dwerror=true
@@ -48,23 +38,23 @@ jobs:
           ARDUINO_CORE_URI: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: '3.9'
       - name: install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install esptool
       - uses: actions/checkout@v2
-      - name: link library
+      - name: install libraries
         run: |
           mkdir -p $HOME/Arduino/libraries
           cd $HOME/Arduino/libraries
           ln -s $GITHUB_WORKSPACE ndn-onboarding
           mkdir NDNph esp8266ndn
-          curl -sfL https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz | tar -C NDNph -xz --strip-components=1
-          curl -sfL https://github.com/yoursunny/esp8266ndn/archive/${ESP8266NDN_VERSION}.tar.gz | tar -C esp8266ndn -xz --strip-components=1
+          curl -fsLS https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz | tar -C NDNph -xz --strip-components=1
+          curl -fsLS https://github.com/yoursunny/esp8266ndn/archive/${ESP8266NDN_VERSION}.tar.gz | tar -C esp8266ndn -xz --strip-components=1
         env:
-          NDNPH_VERSION: develop
-          ESP8266NDN_VERSION: develop
+          NDNPH_VERSION: ef941c24007d2edb8853bd8a039f61438e4c34d3
+          ESP8266NDN_VERSION: 2b07d6dee8bb6ea4ae9425808d39b40b42d63f99
       - name: compile Arduino sketches
         run: |
           for F in $(find ./examples -name 'sample.*'); do
@@ -90,7 +80,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v2
         with:
-          node-version: '15'
+          node-version: 17
       - uses: actions/checkout@v2
       - name: install dependencies
         run: |
@@ -99,7 +89,7 @@ jobs:
       - name: check code style
         run: |
           npm run lint
-          [[ $(git status --porcelain | tee >(cat 1>&2) | wc -l) -eq 0 ]]
+          git diff --exit-code
       - run: npm run typecheck
   go:
     runs-on: ubuntu-20.04

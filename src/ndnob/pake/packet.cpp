@@ -35,7 +35,7 @@ EncryptSession::assign(ndnph::Region& region, ndnph::Name name)
 ndnph::Name
 EncryptSession::makeName(ndnph::Region& region, const ndnph::Component& verb)
 {
-  return getLocalhopOnboardingPrefix().append(region, { ss, verb });
+  return getLocalhopOnboardingPrefix().append(region, ss, verb);
 }
 
 ndnph::tlv::Value

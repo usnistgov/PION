@@ -6,7 +6,6 @@
 /extras/firmware-sizes.ndjson
 /extras/pcapparse/pcapparse
 /extras/pcapparse/pcapparse.exe
-Pipfile.lock
+/subprojects/*/
 node_modules
-package-lock.json
 pnpm-lock.yaml
