@@ -2,6 +2,7 @@
 #define PION_COMMON_HPP
 
 #ifdef ARDUINO
+#include <NimBLEDevice.h>
 #include <esp8266ndn.h>
 #else
 #include <NDNph.h>

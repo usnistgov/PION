@@ -14,7 +14,7 @@
 #endif
 
 #ifdef BASELINE_WANT_BLE_DEVICE
-#include <BLEDevice.h>
+#include <NimBLEDevice.h>
 #endif
 
 void
