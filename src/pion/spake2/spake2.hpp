@@ -123,12 +123,12 @@ struct SHA512
 };
 
 /**
- * @brief This class represents an execution of the SPAKE2 protocol (draft-18).
+ * @brief This class represents an execution of the SPAKE2 protocol (draft-26).
  *
  * SPAKE2 is a protocol for two parties that share a password to derive a strong shared
  * key with no risk of disclosing the password. The password can be low entropy.
  *
- * @sa https://tools.ietf.org/html/draft-irtf-cfrg-spake2-18
+ * @sa https://www.ietf.org/archive/id/draft-irtf-cfrg-spake2-26.html
  */
 template<Role role, typename Group = P256, typename Hash = SHA256>
 class Context final : detail::ContextBase
@@ -178,7 +178,7 @@ private:
 
   ndnph::mbedtls::Mpi m_w;
   ndnph::mbedtls::Mpi m_x;
-  ndnph::mbedtls::EcPoint m_S;
+  ndnph::mbedtls::EcPoint m_pA;
   ndnph::mbedtls::EcPoint m_M;
   ndnph::mbedtls::EcPoint m_N;
 
@@ -226,7 +226,7 @@ Context<role, Group, Hash>::start(const uint8_t* pw, size_t pwLen, const uint8_t
   // Allocate memory for the transcript and copy the identities
   m_transcript.reserve(sizeof(uint64_t) * 6 +             // lengths
                        myIdLen + peerIdLen +              // identities
-                       Group::UncompressedPointSize * 3 + // S, T, K (points)
+                       Group::UncompressedPointSize * 3 + // pA, pB, K (points)
                        Group::ScalarSize);                // w (scalar)
   if (role == Role::Alice) {
     detail::appendToTranscript(m_transcript, myId, myIdLen);
@@ -315,23 +315,23 @@ Context<role, Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgL
     return false;
   }
 
-  // S = wMN + X
-  ret = mbedtls_ecp_muladd(m_group, m_S, s_one, wMN, s_one, X);
+  // pA = wMN + X
+  ret = mbedtls_ecp_muladd(m_group, m_pA, s_one, wMN, s_one, X);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
 
-  std::array<uint8_t, Group::UncompressedPointSize> binS{};
-  size_t lenS = 0;
-  ret = mbedtls_ecp_point_write_binary(m_group, m_S, MBEDTLS_ECP_PF_UNCOMPRESSED, &lenS,
-                                       binS.data(), binS.size());
+  std::array<uint8_t, Group::UncompressedPointSize> pABytes{};
+  size_t pALen = 0;
+  ret = mbedtls_ecp_point_write_binary(m_group, m_pA, MBEDTLS_ECP_PF_UNCOMPRESSED, &pALen,
+                                       pABytes.data(), pABytes.size());
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
 
-  std::memcpy(m_myMsg.data(), binS.data(), lenS);
+  std::memcpy(m_myMsg.data(), pABytes.data(), pALen);
   // TODO: sanity checks
   std::memcpy(outMsg, m_myMsg.data(), outMsgLen);
 
@@ -348,14 +348,14 @@ Context<role, Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inM
   }
 
   int ret;
-  ndnph::mbedtls::EcPoint T;
-  ret = mbedtls_ecp_point_read_binary(m_group, T, inMsg, inMsgLen);
+  ndnph::mbedtls::EcPoint pB;
+  ret = mbedtls_ecp_point_read_binary(m_group, pB, inMsg, inMsgLen);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
   }
   // Verify that the received point is on the curve
-  ret = mbedtls_ecp_check_pubkey(m_group, T);
+  ret = mbedtls_ecp_check_pubkey(m_group, pB);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
@@ -371,8 +371,8 @@ Context<role, Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inM
   }
 
   ndnph::mbedtls::EcPoint Y;
-  // Y = T - wNM
-  ret = mbedtls_ecp_muladd(m_group, Y, s_one, T, s_minusOne, wNM);
+  // Y = pB - wNM
+  ret = mbedtls_ecp_muladd(m_group, Y, s_one, pB, s_minusOne, wNM);
   if (ret != 0) {
     SPAKE2_MBED_ERR(ret);
     return false;
