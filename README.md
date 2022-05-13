@@ -11,4 +11,4 @@ It is in pre-release stage and will continue to be updated.
 * [Protocol specification](docs/protocol.md)
 * [Installation guide](docs/INSTALL.md)
 * [Experiment system setup](docs/expsetup.md)
-* [Firmware size measurement](docs/size.md)
+* [Firmware size measurement](docs/fwsize.md)
