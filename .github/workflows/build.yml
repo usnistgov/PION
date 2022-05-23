@@ -8,20 +8,20 @@ jobs:
   cpp:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v3
         with:
           python-version: '3.9'
-      - name: install dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get install --no-install-recommends clang-format-11 libboost-dev libmbedtls-dev ninja-build
           pip install meson
-      - uses: actions/checkout@v2
-      - name: check meson.build lists and code style
+      - uses: actions/checkout@v3
+      - name: Check meson.build lists and code style
         run: |
           mk/update-list.sh
           mk/format-code.sh
           git diff --exit-code
-      - name: build CLI programs
+      - name: Build CLI programs
         run: |
           meson build -Dbuildtype=debug -Dwerror=true
           ninja -C build
@@ -30,50 +30,51 @@ jobs:
     steps:
       - uses: arduino/setup-arduino-cli@v1.1.1
       - id: cores
-        name: refresh Arduino cores
+        name: Refresh Arduino cores
         run: |
           echo 'https://espressif.github.io/arduino-esp32/package_esp32_index.json' > ~/arduino-cores.txt
           arduino-cli version
           arduino-cli update --additional-urls "$(<~/arduino-cores.txt)"
           echo ::set-output name=d::$(sha256sum ~/.arduino15/package_*index.json | sha256sum | cut -d' ' -f1)
-      - name: cache Arduino cores
-        uses: actions/cache@v2
+      - name: Cache Arduino cores
+        uses: actions/cache@v3
         with:
           path: ~/.arduino15/staging/packages
           key: cores-${{ steps.cores.outputs.d }}
-      - name: install Arduino cores
+      - name: Install Arduino cores
         run: |
           arduino-cli core install esp32:esp32 --additional-urls "$(<~/arduino-cores.txt)"
           arduino-cli lib install NimBLE-Arduino
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v3
         with:
           python-version: '3.9'
-      - name: install dependencies
+      - name: Install dependencies
         run: |
           pip install esptool
-      - uses: actions/checkout@v2
-      - name: prepare Arduino libraries
+      - uses: actions/checkout@v3
+      - name: Prepare Arduino libraries
         run: |
-          mkdir -p $HOME/Arduino/libraries
-          cd $HOME/Arduino/libraries
-          ln -s $GITHUB_WORKSPACE PION
+          mkdir -p "$HOME"/Arduino/libraries
+          cd "$HOME"/Arduino/libraries
+          ln -s "$GITHUB_WORKSPACE" PION
           mkdir NDNph esp8266ndn
-          curl -fsLS https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz | tar -C NDNph -xz --strip-components=1
-          curl -fsLS https://github.com/yoursunny/esp8266ndn/archive/${ESP8266NDN_VERSION}.tar.gz | tar -C esp8266ndn -xz --strip-components=1
+          curl -fsLS "https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz" | tar -C NDNph -xz --strip-components=1
+          curl -fsLS "https://github.com/yoursunny/esp8266ndn/archive/${ESP8266NDN_VERSION}.tar.gz" | tar -C esp8266ndn -xz --strip-components=1
         env:
           NDNPH_VERSION: 22e703555503c2d534774064d9bb444ee8011cbf
           ESP8266NDN_VERSION: f4b532d11418eec392bbd1e02a18468245eb3270
-      - name: compile examples
+      - name: Compile examples
         run: |
-          for F in $(find ./examples -name 'sample.*'); do
-            [[ -f "${F/sample./}" ]] || cp "${F}" "${F/sample.//}"
+          for F in $(find ./examples -type f -name 'sample.*'); do
+            cp -n "${F}" "${F/sample.}"
           done
           for E in $(find ./examples -name '*.ino' -printf '%h\n'); do
-            printf "\n----\033[1;35m Build %s \033[0m----\n" ${E##*/}
+            echo "::group::${E##*/}"
             arduino-cli compile -b esp32:esp32:esp32 --warnings more \
               --build-property 'build.partitions=noota_ffat' \
               --build-property 'upload.maximum_size=2097152' \
-              $E
+              "$E"
+            echo "::endgroup::"
           done
   node:
     runs-on: ubuntu-20.04
@@ -86,12 +87,12 @@ jobs:
       run:
         working-directory: ${{ matrix.subdir }}
     steps:
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 17
-      - uses: actions/checkout@v2
       - run: corepack pnpm install
-      - name: check code style
+      - name: Check code style
         run: |
           corepack pnpm lint
           git diff --exit-code
@@ -106,8 +107,8 @@ jobs:
       run:
         working-directory: ${{ matrix.subdir }}
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
         with:
-          go-version: ^1.17
-      - uses: actions/checkout@v2
+          go-version-file: ${{ matrix.subdir }}/go.mod
       - run: go install ./cmd/pion-pcapparse
