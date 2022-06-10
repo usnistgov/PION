@@ -6,7 +6,7 @@
 namespace pion {
 namespace pake {
 
-/** @brief NDN onboarding protocol - PAKE stage, device side. */
+/** @brief PION Onboarding Protocol - PAKE stage, device side. */
 class Device : public ndnph::PacketHandler
 {
 public:

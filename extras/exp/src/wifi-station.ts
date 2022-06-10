@@ -1,4 +1,4 @@
-import execa from "execa";
+import { execa } from "execa";
 import { setTimeout as delay } from "node:timers/promises";
 
 import type { DirectConnection } from "./direct-connection";

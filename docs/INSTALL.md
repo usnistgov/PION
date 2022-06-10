@@ -9,7 +9,7 @@ It also contains certain instrumentation features.
 
 To install the program to a microcontroller:
 
-1. Install Arduino IDE, [Arduino core for the ESP32](https://github.com/espressif/arduino-esp32) v2.0.2, [NimBLE](https://github.com/h2zero/NimBLE-Arduino) and [esp8266ndn](https://github.com/yoursunny/esp8266ndn) libraries.
+1. Install Arduino IDE, [Arduino core for the ESP32](https://github.com/espressif/arduino-esp32) v2.0.3, [NimBLE](https://github.com/h2zero/NimBLE-Arduino) and [esp8266ndn](https://github.com/yoursunny/esp8266ndn) libraries.
 2. Clone this repository to `$HOME/Arduino/libraries`.
 3. Copy `sample.config.hpp` to `config.hpp`, and modify as necessary.
 4. In Arduino Tools menu, select "Board: ESP32 Dev Module" and "Partition Scheme: No OTA (2MB APP/2MB FATFS)".
@@ -26,14 +26,14 @@ The [certificate authority](../extras/ca) is a Node.js program.
 
 To install the program:
 
-1. Install Node.js 17.x with [nvm](https://github.com/nvm-sh/nvm).
+1. Install Node.js 18.x with [nvm](https://github.com/nvm-sh/nvm).
 2. `corepack pnpm install`.
 3. Modify `.env` as necessary.
 
 To start the program:
 
-* `corepack pnpm start -s -- --nop` enables "nop" challenge, for obtaining authenticator certificate.
-* `corepack pnpm start -s` enables "possession" challenge only, for normal operation.
+* `corepack pnpm -s start --nop` enables "nop" challenge, for obtaining authenticator certificate.
+* `corepack pnpm -s start` enables "possession" challenge only, for normal operation.
 
 ## PCAP Parser
 
@@ -41,7 +41,7 @@ To start the program:
 
 To install the program:
 
-1. Install Go 1.17 or higher.
+1. Install Go 1.18.
 2. `go install ./cmd/pion-pcapparse`.
 
 ## Experiment Script
@@ -57,7 +57,7 @@ To run the experiment:
 3. Create an authenticator certificate (see below).
 4. Start the certificate authority normally.
 5. `pipenv install`.
-6. `corepack pnpm start -s -- --count N` runs the experiment N times, default is 1.
+6. `corepack pnpm -s start --count N` runs the experiment N times, default is 1.
 
 To create an authenticator certificate, start the certificate authority with "nop" challenge enabled, then:
 
@@ -67,7 +67,7 @@ export NDNPH_UPLINK_UDP_PORT=6363
 unset NDNPH_UPLINK_MTU
 export NDNPH_KEYCHAIN=./runtime/keychain
 
-ndnph-keychain keygen a /my-network/32=onboarding-authenticator/$(openssl rand -hex 4) >/dev/null
+ndnph-keychain keygen a /my-network/32=pion-authenticator/$(openssl rand -hex 4) >/dev/null
 ndnph-ndncertclient -P ../ca/runtime/profile.data -i a | ndnph-keychain certimport a
 ndnph-keychain certinfo a
 ```

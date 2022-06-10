@@ -6,7 +6,7 @@
 namespace pion {
 namespace pake {
 
-/** @brief NDN onboarding protocol - PAKE stage, authenticator side. */
+/** @brief PION Onboarding Protocol - PAKE stage, authenticator side. */
 class Authenticator : public ndnph::PacketHandler
 {
 public:

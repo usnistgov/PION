@@ -1,6 +1,6 @@
 import byline from "byline";
 import Emittery from "emittery";
-import execa, { ExecaChildProcess } from "execa";
+import { type ExecaChildProcess, execa } from "execa";
 
 import type { PacketDir, PacketMeta } from "./packet";
 
@@ -104,7 +104,7 @@ export class Device extends Emittery<Events> {
   }
 
   private async handleStdout() {
-    for await (const line of byline(this.child.stdout!, { encoding: "utf-8" }) as AsyncIterable<string>) {
+    for await (const line of byline(this.child.stdout!, { encoding: "utf8" }) as AsyncIterable<string>) {
       let l: DeviceLogLine;
       try {
         l = new DeviceLogLine(line);

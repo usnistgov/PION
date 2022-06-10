@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 export HOME=/var/lib/ndn/nfd
 
 if ! ndnsec get-default &>/dev/null; then

@@ -244,9 +244,9 @@ bool
 Device::checkInterestVerb(ndnph::Interest interest, const ndnph::Component& expectedVerb)
 {
   const auto& name = interest.getName();
-  return name.size() == getLocalhopOnboardingPrefix().size() + 3 &&
-         getLocalhopOnboardingPrefix().isPrefixOf(name) && name[-2] == expectedVerb &&
-         interest.checkDigest() && m_session.assign(*m_iRegion, interest.getName());
+  return name.size() == getPionPrefix().size() + 3 && getPionPrefix().isPrefixOf(name) &&
+         name[-2] == expectedVerb && interest.checkDigest() &&
+         m_session.assign(*m_iRegion, interest.getName());
 }
 
 void

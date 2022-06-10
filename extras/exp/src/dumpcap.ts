@@ -1,4 +1,4 @@
-import execa, { ExecaChildProcess } from "execa";
+import { type ExecaChildProcess, execa } from "execa";
 
 import type { PacketDir, PacketMeta } from "./packet";
 
@@ -40,7 +40,7 @@ export class Dumpcap {
     }
 
     const result = await execa("pion-pcapparse", [arg], {
-      encoding: "utf-8",
+      encoding: "utf8",
       input: this.pcap,
       stdout: "pipe",
       stderr: "inherit",

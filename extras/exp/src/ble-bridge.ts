@@ -1,4 +1,4 @@
-import execa, { ExecaChildProcess } from "execa";
+import { type ExecaChildProcess, execa } from "execa";
 
 import type { DirectConnection } from "./direct-connection";
 

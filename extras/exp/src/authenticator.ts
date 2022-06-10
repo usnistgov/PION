@@ -1,6 +1,6 @@
 import byline from "byline";
 import Emittery from "emittery";
-import execa, { ExecaChildProcess } from "execa";
+import { type ExecaChildProcess, execa } from "execa";
 
 interface Events {
   error: Error;
@@ -34,8 +34,7 @@ export class Authenticator extends Emittery<Events> {
         NDNPH_KEYCHAIN: opts.keychain,
       },
     });
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this.child.on("error", (err) => {
+    void this.child.on("error", (err) => {
       void this.emit("error", err);
     });
     void this.handleStderr();
@@ -44,7 +43,7 @@ export class Authenticator extends Emittery<Events> {
   public readonly logs: string[] = [];
 
   private async handleStderr() {
-    for await (const line of byline(this.child.stderr!, { encoding: "utf-8" }) as AsyncIterable<string>) {
+    for await (const line of byline(this.child.stderr!, { encoding: "utf8" }) as AsyncIterable<string>) {
       this.logs.push(line);
       void this.emit("line", line);
     }

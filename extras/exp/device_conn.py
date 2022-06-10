@@ -24,7 +24,7 @@ class DeviceConn:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='NDN onboarding device connector.')
+        description='PION device connector.')
     parser.add_argument('--port', type=str,
                         default='/dev/ttyUSB0', help='serial port')
     opts = parser.parse_args()

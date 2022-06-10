@@ -61,8 +61,8 @@ jobs:
           curl -fsLS "https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz" | tar -C NDNph -xz --strip-components=1
           curl -fsLS "https://github.com/yoursunny/esp8266ndn/archive/${ESP8266NDN_VERSION}.tar.gz" | tar -C esp8266ndn -xz --strip-components=1
         env:
-          NDNPH_VERSION: 22e703555503c2d534774064d9bb444ee8011cbf
-          ESP8266NDN_VERSION: f4b532d11418eec392bbd1e02a18468245eb3270
+          NDNPH_VERSION: 601a5c0591ba965a6f4d6e5dc80d998afb691ebb
+          ESP8266NDN_VERSION: 35330200a314540da66f774e360b23ebcc5815e7
       - name: Compile examples
         run: |
           for F in $(find ./examples -type f -name 'sample.*'); do
@@ -90,7 +90,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: 17
+          node-version: 18
       - run: corepack pnpm install
       - name: Check code style
         run: |

@@ -1,4 +1,4 @@
-import { closeUplinks, openKeyChain, openUplinks } from "@ndn/cli-common";
+import { exitClosers, openKeyChain, openUplinks } from "@ndn/cli-common";
 import { Certificate, createVerifier, generateSigningKey } from "@ndn/keychain";
 import { CaProfile } from "@ndn/ndncert";
 import { Data, Name } from "@ndn/packet";
@@ -35,6 +35,7 @@ export const env = makeEnv({
 export const networkPrefix = new Name(env.networkPrefix);
 
 export const repo = new DataStore(leveldown(env.repo));
+exitClosers.push(repo);
 
 /** @type {RepoProducer} */
 let repoProducer;
@@ -55,6 +56,7 @@ export async function initEnv() {
   repoProducer = RepoProducer.create(repo, {
     reg: PrefixRegStatic(networkPrefix),
   });
+  exitClosers.push(repoProducer);
 
   try {
     const profileData = new Decoder(await fs.readFile(env.profile)).decode(Data);
@@ -70,7 +72,7 @@ export async function initEnv() {
     aSigner = await keyChain.getSigner(cert.name);
     aProfile = await CaProfile.build({
       prefix: networkPrefix,
-      info: "NDN onboarding CA",
+      info: "PION CA",
       probeKeys: [],
       maxValidityPeriod: 30 * 86400 * 1000,
       cert,
@@ -81,9 +83,3 @@ export async function initEnv() {
   await repo.insert(aProfile.cert.data);
   aVerifier = await createVerifier(aProfile.cert);
 }
-
-process.once("beforeExit", async () => {
-  repoProducer?.close();
-  await repo.close();
-  await closeUplinks();
-});

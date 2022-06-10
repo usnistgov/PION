@@ -1,6 +1,6 @@
 # Experiment System Setup
 
-NDN onboarding experiments are conducted on a Raspberry Pi 3B.
+PION onboarding experiments are conducted on a Raspberry Pi 3B.
 This page explains how the system was setup.
 
 ```text
@@ -113,7 +113,7 @@ With this repository cloned at `~/code/PION`, build and start NFD Docker contain
 
 ```bash
 cd ~/code/PION/extras/nfd
-docker build -t nfd .
+docker build --pull -t nfd .
 
 docker rm -f nfd
 docker run -d --name nfd --init \

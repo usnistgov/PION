@@ -5,9 +5,9 @@ import { Data } from "@ndn/packet";
 
 import { aVerifier, networkPrefix, repo } from "./env.js";
 
-const AuthenticatorKeyword = Keyword.create("onboarding-authenticator");
+const AuthenticatorKeyword = Keyword.create("pion-authenticator");
 
-const AuthenticatedKeyword = Keyword.create("onboarding-authenticated");
+const AuthenticatedKeyword = Keyword.create("pion-authenticated");
 
 /**
  * Parse device temporary certificate name.

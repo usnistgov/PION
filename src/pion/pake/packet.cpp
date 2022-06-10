@@ -25,17 +25,15 @@ bool
 EncryptSession::assign(ndnph::Region& region, ndnph::Name name)
 {
   if (!ss) {
-    ss = name.slice(getLocalhopOnboardingPrefix().size(), getLocalhopOnboardingPrefix().size() + 1)
-           .clone(region)[0];
+    ss = name.slice(getPionPrefix().size(), getPionPrefix().size() + 1).clone(region)[0];
   }
-  return !!ss && getLocalhopOnboardingPrefix().isPrefixOf(name) &&
-         name[getLocalhopOnboardingPrefix().size()] == ss;
+  return !!ss && getPionPrefix().isPrefixOf(name) && name[getPionPrefix().size()] == ss;
 }
 
 ndnph::Name
 EncryptSession::makeName(ndnph::Region& region, const ndnph::Component& verb)
 {
-  return getLocalhopOnboardingPrefix().append(region, ss, verb);
+  return getPionPrefix().append(region, ss, verb);
 }
 
 ndnph::tlv::Value

@@ -4,7 +4,9 @@ project('PION', 'cpp',
     'cpp_std=c++11',
     'cpp_eh=none',
     'cpp_rtti=false'
-  ])
+  ],
+  meson_version: '>=0.62.0'
+)
 
 cpp = meson.get_compiler('cpp')
 
