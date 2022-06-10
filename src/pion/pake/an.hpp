@@ -23,13 +23,13 @@ enum
 using namespace ndnph::ndncert::TT;
 } // namespace TT
 
-/** @brief Return '/localhop/32=PION' name prefix. */
+/** @brief Return '/localhop/32=pion' name prefix. */
 inline ndnph::Name
 getPionPrefix()
 {
   static const uint8_t tlv[]{
     0x08, 0x08, 0x6C, 0x6F, 0x63, 0x61, 0x6C, 0x68, 0x6F, 0x70, // localhop
-    0x20, 0x04, 0x50, 0x49, 0x4F, 0x4E,                         // 32=PION
+    0x20, 0x04, 0x70, 0x69, 0x6F, 0x6E,                         // 32=pion
   };
   static const ndnph::Name name(tlv, sizeof(tlv));
   return name;
