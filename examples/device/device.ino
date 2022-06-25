@@ -4,6 +4,11 @@
 void
 setup()
 {
+#if ARDUINO_USB_CDC_ON_BOOT
+  while (!Serial) {
+    delay(1);
+  }
+#endif
   Serial.begin(115200);
   Serial.println();
   NDNPH_LOG_LINE("pion.O.program", "%s %s",
@@ -40,4 +45,5 @@ void
 loop()
 {
   pion_device_app::loop();
+  delay(1);
 }
