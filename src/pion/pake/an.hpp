@@ -28,8 +28,7 @@ inline ndnph::Name
 getPionPrefix()
 {
   static const uint8_t tlv[]{
-    0x08, 0x08, 0x6C, 0x6F, 0x63, 0x61, 0x6C, 0x68, 0x6F, 0x70, // localhop
-    0x20, 0x04, 0x70, 0x69, 0x6F, 0x6E,                         // 32=pion
+    0x08, 0x08, 'l', 'o', 'c', 'a', 'l', 'h', 'o', 'p', 0x20, 0x04, 'p', 'i', 'o', 'n',
   };
   static const ndnph::Name name(tlv, sizeof(tlv));
   return name;
@@ -39,7 +38,7 @@ getPionPrefix()
 inline ndnph::Component
 getPakeComponent()
 {
-  static const uint8_t tlv[]{ 0x08, 0x04, 0x70, 0x61, 0x6B, 0x65 };
+  static const uint8_t tlv[]{ 0x08, 0x04, 'p', 'a', 'k', 'e' };
   static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
   return comp;
 }
@@ -48,7 +47,7 @@ getPakeComponent()
 inline ndnph::Component
 getConfirmComponent()
 {
-  static const uint8_t tlv[]{ 0x08, 0x07, 0x63, 0x6F, 0x6E, 0x66, 0x69, 0x72, 0x6D };
+  static const uint8_t tlv[]{ 0x08, 0x07, 'c', 'o', 'n', 'f', 'i', 'r', 'm' };
   static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
   return comp;
 }
@@ -57,9 +56,7 @@ getConfirmComponent()
 inline ndnph::Component
 getCredentialComponent()
 {
-  static const uint8_t tlv[]{
-    0x08, 0x0A, 0x63, 0x72, 0x65, 0x64, 0x65, 0x6E, 0x74, 0x69, 0x61, 0x6C
-  };
+  static const uint8_t tlv[]{ 0x08, 0x0A, 'c', 'r', 'e', 'd', 'e', 'n', 't', 'i', 'a', 'l' };
   static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
   return comp;
 }
@@ -68,8 +65,8 @@ getCredentialComponent()
 inline ndnph::Component
 getAuthenticatorComponent()
 {
-  static const uint8_t tlv[]{ 0x20, 0x12, 0x70, 0x69, 0x6F, 0x6E, 0x2d, 0x61, 0x75, 0x74,
-                              0x68, 0x65, 0x6e, 0x74, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72 };
+  static const uint8_t tlv[]{ 0x20, 0x12, 'p', 'i', 'o', 'n', '-', 'a', 'u', 't',
+                              'h',  'e',  'n', 't', 'i', 'c', 'a', 't', 'o', 'r' };
   static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
   return comp;
 }
@@ -78,8 +75,8 @@ getAuthenticatorComponent()
 inline ndnph::Component
 getAuthenticatedComponent()
 {
-  static const uint8_t tlv[]{ 0x20, 0x12, 0x70, 0x69, 0x6F, 0x6E, 0x2d, 0x61, 0x75, 0x74,
-                              0x68, 0x65, 0x6e, 0x74, 0x69, 0x63, 0x61, 0x74, 0x65, 0x64 };
+  static const uint8_t tlv[]{ 0x20, 0x12, 'p', 'i', 'o', 'n', '-', 'a', 'u', 't',
+                              'h',  'e',  'n', 't', 'i', 'c', 'a', 't', 'e', 'd' };
   static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
   return comp;
 }
