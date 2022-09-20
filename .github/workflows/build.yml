@@ -55,8 +55,8 @@ jobs:
           curl -fsLS "https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz" | tar -C NDNph -xz --strip-components=1
           curl -fsLS "https://github.com/yoursunny/esp8266ndn/archive/${ESP8266NDN_VERSION}.tar.gz" | tar -C esp8266ndn -xz --strip-components=1
         env:
-          NDNPH_VERSION: 601a5c0591ba965a6f4d6e5dc80d998afb691ebb
-          ESP8266NDN_VERSION: 3ca5c7488475bface6221dd8dfb2991b44e831dd
+          NDNPH_VERSION: 67fb73e7b29bd83ba8dc31250404a1016ee56bc8
+          ESP8266NDN_VERSION: a165109f6034dc64c6776c9005f62444507e0e2e
       - name: Compile examples
         run: |
           for F in $(find ./examples -type f -name 'sample.*'); do
