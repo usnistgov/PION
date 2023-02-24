@@ -1,6 +1,5 @@
 #!/bin/bash
-set -e
-set -o pipefail
+set -euo pipefail
 cd "$( dirname "${BASH_SOURCE[0]}" )"/..
 export LC_ALL=C
 

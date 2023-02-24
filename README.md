@@ -3,8 +3,8 @@
 This library implements a secure device onboarding protocol for Named Data Networking using SPAKE2 and NDNCERT.
 It contains three components corresponding to the roles defined in the protocol: device, authenticator, certificate authority.
 
-This software is developed at the [Communications Technology Laboratory](https://www.nist.gov/ctl) of the [National Institute of Standards and Technology](https://www.nist.gov/).
-It is in pre-release stage and will continue to be updated.
+This software is developed at the [Smart Connected Systems Division](https://www.nist.gov/ctl/smart-connected-systems-division) of the [National Institute of Standards and Technology](https://www.nist.gov/).
+It is in beta stage and will continue to be updated.
 
 If you use PION in your research, please cite the PION paper instead of this GitHub repository:
 
