@@ -2,7 +2,7 @@
 set -eo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"/..
 
-ARDUINO=$(which arduino-cli)
+ARDUINO=$(command -v arduino-cli)
 
 ESP32PKG=~/AppData/Local/Arduino15/packages/esp32
 SIZE=$(find $ESP32PKG -name xtensa-esp32-elf-size.exe)
@@ -45,15 +45,13 @@ build_and_measure() {
   SIZE_B=$($SIZE -B $OUTPUT/*.ino.elf) \
   SIZE_A=$($SIZE -A $OUTPUT/*.ino.elf) \
   NM_C=$($NM -C $OUTPUT/*.ino.elf) \
-  jq -cn \
-    --argjson program "$PROGRAM" \
-  '{
-    program: $program,
-    size: ($ENV.SIZE_B | capture("\\n\\s*(?<text>\\d+)\\t\\s*(?<data>\\d+)\\t\\s*(?<bss>\\d+)\\t")),
-    sizeB: $ENV.SIZE_B,
-    sizeA: $ENV.SIZE_A,
-    nm: $ENV.NM_C
-  }'
+    jq -cn --argjson program "$PROGRAM" '{
+      program: $program,
+      size: ($ENV.SIZE_B | capture("\\n\\s*(?<text>\\d+)\\t\\s*(?<data>\\d+)\\t\\s*(?<bss>\\d+)\\t")),
+      sizeB: $ENV.SIZE_B,
+      sizeA: $ENV.SIZE_A,
+      nm: $ENV.NM_C
+    }'
 }
 
 edit_config_macros $SKETCH_BASELINE \
@@ -92,14 +90,14 @@ for DIRECT in wifi ble; do
     edit_config_macros $SKETCH_DEVICE +PION_INFRA_${INFRA^^}
     for INCLUDE_STEPS in connect pake full; do
       case $INCLUDE_STEPS in
-        connect) edit_config_macros $SKETCH_DEVICE +PION_SKIP_PAKE +PION_SKIP_NDNCERT;;
-        pake   ) edit_config_macros $SKETCH_DEVICE -PION_SKIP_PAKE +PION_SKIP_NDNCERT;;
-        full   ) edit_config_macros $SKETCH_DEVICE -PION_SKIP_PAKE -PION_SKIP_NDNCERT;;
+        connect) edit_config_macros $SKETCH_DEVICE +PION_SKIP_PAKE +PION_SKIP_NDNCERT ;;
+        pake) edit_config_macros $SKETCH_DEVICE -PION_SKIP_PAKE +PION_SKIP_NDNCERT ;;
+        full) edit_config_macros $SKETCH_DEVICE -PION_SKIP_PAKE -PION_SKIP_NDNCERT ;;
       esac
       build_and_measure $SKETCH_DEVICE \
         ${BUILD}/${DIRECT}-${INFRA}-${INCLUDE_STEPS} \
         "$(jq -cn --arg direct $DIRECT --arg infra $INFRA --arg include_steps $INCLUDE_STEPS \
-           '["direct-" + $direct, "infra-" + $infra, "include-steps-" + $include_steps]')"
+          '["direct-" + $direct, "infra-" + $infra, "include-steps-" + $include_steps]')"
     done
   done
 done

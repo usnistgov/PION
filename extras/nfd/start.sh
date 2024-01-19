@@ -7,7 +7,7 @@ if ! ndnsec get-default &>/dev/null; then
 fi
 
 mkdir -p /etc/ndn/certs
-ndnsec cert-dump -i $(ndnsec get-default) > /etc/ndn/certs/localhost.ndncert
+ndnsec cert-dump -i $(ndnsec get-default) >/etc/ndn/certs/localhost.ndncert
 
 cp /etc/ndn/nfd.conf.sample /etc/ndn/nfd.conf
 nfdconfedit() {

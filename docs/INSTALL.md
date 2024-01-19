@@ -9,7 +9,7 @@ It also contains certain instrumentation features.
 
 To install the program to a microcontroller:
 
-1. Install Arduino IDE, [Arduino core for the ESP32](https://github.com/espressif/arduino-esp32) v2.0.3, [NimBLE](https://github.com/h2zero/NimBLE-Arduino) and [esp8266ndn](https://github.com/yoursunny/esp8266ndn) libraries.
+1. Install Arduino IDE, [Arduino core for the ESP32](https://github.com/espressif/arduino-esp32) v2.0.14, [NimBLE](https://github.com/h2zero/NimBLE-Arduino) and [esp8266ndn](https://github.com/yoursunny/esp8266ndn) libraries.
 2. Clone this repository to `$HOME/Arduino/libraries`.
 3. Copy `sample.config.hpp` to `config.hpp`, and modify as necessary.
 4. In Arduino Tools menu, select "Board: ESP32 Dev Module" and "Partition Scheme: No OTA (2MB APP/2MB FATFS)".
