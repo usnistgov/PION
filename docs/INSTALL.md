@@ -26,7 +26,7 @@ The [certificate authority](../extras/ca) is a Node.js program.
 
 To install the program:
 
-1. Install Node.js 18.x with [nvm](https://github.com/nvm-sh/nvm).
+1. Install Node.js 20.x with [nvm](https://github.com/nvm-sh/nvm) or [NodeSource APT](https://github.com/nodesource/distributions).
 2. `corepack pnpm install`.
 3. Modify `.env` as necessary.
 
@@ -41,8 +41,9 @@ To start the program:
 
 To install the program:
 
-1. Install Go 1.18.
-2. `go install ./cmd/pion-pcapparse`.
+1. Install Go 1.21.
+2. `go install ./cmd/pion-pcapparse`
+3. `sudo install -t /usr/local/bin ~/go/bin/pion-pcapparse`
 
 ## Experiment Script
 

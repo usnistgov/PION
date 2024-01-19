@@ -19,10 +19,10 @@ This page explains how the system was setup.
 
 ## Operating System Setup
 
-The RPi is running Ubuntu 20.04 Server, 32-bit ARMv7.
+The RPi is running Ubuntu Server 22.04 (64-bit).
 Installed software include:
 
-* APT packages: `dnsmasq hostapd jq pi-bluetooth socat wireshark-common`
+* APT packages: `dnsmasq hostapd iw jq pi-bluetooth wireshark-common`
 * Docker
 
 Changed configuration includes:
@@ -39,8 +39,8 @@ sudo adduser $(id -un) wireshark
 
 ## Network Interfaces
 
-Two USB WiFi adapters are attached for experiment use.
-The experiment network interfaces are renamed to `auth` and `ap` via [systemd.link](https://www.freedesktop.org/software/systemd/man/systemd.link.html) files.
+The built-in WiFi interface and a USB WiFi adapter are attached for experiment use.
+They are renamed to `auth` and `ap` via [systemd.link](https://www.freedesktop.org/software/systemd/man/systemd.link.html) files.
 
 ### "auth" interface
 
@@ -67,7 +67,7 @@ It is always powered on.
 
 Upload these config files:
 
-* [`/etc/netplan/01-netcfg.yml`](netplan.yml)
+* [`/etc/netplan/10-ap.yaml`](netplan-ap.yaml)
 * [`/etc/hostapd/hostapd.conf`](hostapd.conf)
 * [`/etc/dnsmasq.conf`](dnsmasq.conf)
 
@@ -75,13 +75,13 @@ Enable and start the services:
 
 ```bash
 sudo systemctl unmask hostapd
-sudo systemctl enable hostapd
-sudo systemctl start hostapd
+sudo systemctl enable --now hostapd
 
-sudo systemctl edit dnsmasq
-#  [Unit]
-#  Requires=network-online.target
-#  After=network-online.target
+sudo SYSTEMD_EDITOR=tee systemctl edit dnsmasq <<EOT
+[Unit]
+Requires=network-online.target
+After=network-online.target
+EOT
 sudo systemctl restart dnsmasq
 ```
 
@@ -95,12 +95,12 @@ It can be installed with the following commands:
 
 ```bash
 sudo apt install python3-dev python3-venv libglib2.0-dev
-sudo pip install -U pipenv
+sudo pip3 install -U pipenv
 
-mkdir -p ~/code/BLE
+mkdir -p ~/BLE
 curl -fsLS https://github.com/yoursunny/esp8266ndn/archive/main.tar.gz |\
-  tar -C ~/code/BLE -xz --strip-components=3 --wildcards 'esp8266ndn-*/extras/BLE'
-cd ~/code/BLE
+  tar -C ~/BLE -xz --strip-components=3 --wildcards 'esp8266ndn-*/extras/BLE'
+cd ~/BLE
 pipenv install
 ```
 
@@ -109,16 +109,16 @@ pipenv install
 NFD is required to accept packets on the `ap` interface and forward them between the device and the certificate authority.
 It's recommended to install NFD as a Docker container.
 
-With this repository cloned at `~/code/PION`, build and start NFD Docker container:
+With this repository cloned at `~/PION`, build and start NFD Docker container:
 
 ```bash
-cd ~/code/PION/extras/nfd
-docker build --pull -t nfd .
+cd ~/PION/extras/nfd
+docker build --pull -t localhost/nfd .
 
 docker rm -f nfd
 docker run -d --name nfd --init \
   --network host --cap-add=NET_ADMIN \
   -v /run/ndn:/run/ndn \
   --restart unless-stopped \
-  nfd
+  localhost/nfd
 ```

@@ -1,7 +1,7 @@
-FROM debian:buster
+FROM debian:bullseye
 RUN apt-get -y update && \
     apt-get -y install -qq --no-install-recommends ca-certificates jq && \
-    echo "deb [arch=armhf trusted=yes] https://nfd-nightly-apt.ndn.today/debian buster main" > /etc/apt/sources.list.d/nfd-nightly.list && \
+    echo "deb [arch=arm64 trusted=yes] https://nfd-nightly-apt.ndn.today/debian bullseye main" > /etc/apt/sources.list.d/nfd-nightly.list && \
     apt-get -y update && \
     apt-get -y install -qq --no-install-recommends infoedit ndnpeek ndnping ndnsec nfd && \
     rm -rf /var/lib/apt/lists/*

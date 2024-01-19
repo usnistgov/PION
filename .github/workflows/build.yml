@@ -13,7 +13,7 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: |
-          sudo apt-get install --no-install-recommends clang-format-15 libboost-dev libmbedtls-dev ninja-build
+          sudo apt-get install --no-install-recommends clang-format-15 libboost-dev libmbedtls-dev meson
           pip install meson
       - uses: actions/checkout@v4
       - name: Check meson.build lists and code style

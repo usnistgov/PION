@@ -14,5 +14,5 @@ It is designed to run on Windows 10 environment.
 3. Run the script in Git Bash:
 
    ```bash
-   extras/firmware-sizes.sh > extras/firmware-sizes.ndjson
+   extras/firmware-sizes.sh >extras/firmware-sizes.ndjson
    ```
