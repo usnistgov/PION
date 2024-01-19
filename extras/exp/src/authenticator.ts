@@ -1,6 +1,6 @@
 import byline from "byline";
 import Emittery from "emittery";
-import { type ExecaChildProcess, execa } from "execa";
+import { execa, type ExecaChildProcess } from "execa";
 
 interface Events {
   error: Error;

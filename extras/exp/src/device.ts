@@ -1,6 +1,6 @@
 import byline from "byline";
 import Emittery from "emittery";
-import { type ExecaChildProcess, execa } from "execa";
+import { execa, type ExecaChildProcess } from "execa";
 
 import type { PacketDir, PacketMeta } from "./packet";
 
@@ -26,7 +26,7 @@ class DeviceLogLine {
 
     this.hostTime = Number.parseInt(tokens[0]!, 10);
     this.deviceTime = Number.parseInt(tokens[1]!, 10);
-    this.category = tokens[2]!.replace(/^\[pion\.|]$/g, "");
+    this.category = tokens[2]!.replaceAll(/^\[pion\.|]$/g, "");
     this.value = tokens.slice(3).join(" ");
   }
 
@@ -100,7 +100,7 @@ export class Device extends Emittery<Events> {
 
   /** Device application state. */
   public get state(): AppState {
-    return this.states[this.states.length - 1] ?? AppState.Idle;
+    return this.states.at(-1) ?? AppState.Idle;
   }
 
   private async handleStdout() {
@@ -125,12 +125,14 @@ export class Device extends Emittery<Events> {
           this.program = l.value.split(" ");
           break;
         }
-        case "O.password":
+        case "O.password": {
           this.password = l.value;
           break;
-        case "O.WiFi-BSSID":
+        }
+        case "O.WiFi-BSSID": {
           this.wifiBssid = l.value;
           break;
+        }
         case "O.BLE-MAC": {
           const m = /[\da-f:]{17}/.exec(l.value);
           if (m) {
@@ -138,21 +140,25 @@ export class Device extends Emittery<Events> {
           }
           break;
         }
-        case "O.BLE-MTU":
+        case "O.BLE-MTU": {
           this.bleMtu = l.int;
           break;
-        case "H.total":
+        }
+        case "H.total": {
           this.heapTotal = l.int;
           break;
-        case "H.free-initial":
+        }
+        case "H.free-initial": {
           this.heapFreeInitial = l.int;
           break;
-        case "H.free-final":
+        }
+        case "H.free-final": {
           this.heapFreeFinal = l.int;
           break;
+        }
         case "H.free-prev-state": {
           if (this.states.length >= 2) {
-            this.heapFreeState[this.states[this.states.length - 2]!] = l.int;
+            this.heapFreeState[this.states.at(-2)!] = l.int;
           }
           break;
         }

@@ -1,4 +1,4 @@
-import { type ExecaChildProcess, execa } from "execa";
+import { execa, type ExecaChildProcess } from "execa";
 
 import type { PacketDir, PacketMeta } from "./packet";
 

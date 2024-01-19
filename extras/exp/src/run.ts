@@ -1,5 +1,6 @@
 import { setTimeout as delay } from "node:timers/promises";
-import pDefer, { DeferredPromise } from "p-defer";
+
+import pDefer, { type DeferredPromise } from "p-defer";
 
 import { Authenticator } from "./authenticator";
 import { BleBridge } from "./ble-bridge";
@@ -7,7 +8,7 @@ import { AppState, Device } from "./device";
 import type { DirectConnection } from "./direct-connection";
 import { Dumpcap } from "./dumpcap";
 import { env, INFRA_WIFI_NETIF_MACADDR } from "./env";
-import { labelPacketSteps, PacketMeta, ProtocolSequence } from "./packet";
+import { labelPacketSteps, type PacketMeta, ProtocolSequence } from "./packet";
 import { WifiStation } from "./wifi-station";
 
 async function analyzeDump(
@@ -66,24 +67,29 @@ export class Run {
 
   private handleDeviceState = async (state: AppState) => {
     switch (state) {
-      case AppState.WaitDirectConnect:
+      case AppState.WaitDirectConnect: {
         await delay(1000);
         this.directPromise = this.directConnect();
         break;
-      case AppState.WaitPake:
+      }
+      case AppState.WaitPake: {
         await this.directPromise;
         this.startAuthenticator();
         break;
-      case AppState.WaitDirectDisconnect:
+      }
+      case AppState.WaitDirectDisconnect: {
         await delay(500);
         await this.directDisconnect();
         break;
-      case AppState.WaitInfraConnect:
+      }
+      case AppState.WaitInfraConnect: {
         this.startInfraDump();
         break;
-      case AppState.Final:
+      }
+      case AppState.Final: {
         await this.finish();
         break;
+      }
     }
   };
 
