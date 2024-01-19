@@ -92,7 +92,7 @@ jobs:
           git diff --exit-code
       - run: corepack pnpm typecheck
   go:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         subdir:
@@ -101,8 +101,16 @@ jobs:
       run:
         working-directory: ${{ matrix.subdir }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: ${{ matrix.subdir }}/go.mod
-      - run: go install ./cmd/pion-pcapparse
+      - name: Compile packages
+        run: |
+          go build -v ./...
+      - name: Check code style
+        run: |
+          go mod tidy
+          go fmt ./...
+          go vet ./...
+          git diff --exit-code

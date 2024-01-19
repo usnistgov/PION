@@ -22,7 +22,7 @@ This page explains how the system was setup.
 The RPi is running Ubuntu 20.04 Server, 32-bit ARMv7.
 Installed software include:
 
-* APT packages: `dnsmasq hostapd jq pi-bluetooth socat tshark`
+* APT packages: `dnsmasq hostapd jq pi-bluetooth socat wireshark-common`
 * Docker
 
 Changed configuration includes:
@@ -32,9 +32,9 @@ Changed configuration includes:
 echo 'include btcfg.txt' | sudo tee -a /boot/firmware/usrcfg.txt
 
 # allow non-root to capture packets with 'dumpcap'
-sudo dpkg-configure wireshark-common
-#  "Should non-superusers be able to capture packets?" <Yes>
-sudo usermod -aG wireshark $(whoami)
+echo 'wireshark-common wireshark-common/install-setuid boolean true' | sudo debconf-set-selections
+sudo dpkg-reconfigure --frontend=noninteractive wireshark-common
+sudo adduser $(id -un) wireshark
 ```
 
 ## Network Interfaces
