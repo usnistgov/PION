@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+
 import { exitClosers, openKeyChain, openUplinks } from "@ndn/cli-common";
 import { Certificate, createVerifier, generateSigningKey } from "@ndn/keychain";
 import { CaProfile } from "@ndn/ndncert";
@@ -6,10 +8,8 @@ import { DataStore, PrefixRegStatic, RepoProducer } from "@ndn/repo";
 import { Decoder, Encoder } from "@ndn/tlv";
 import strattadbEnvironment from "@strattadb/environment";
 import dotenv from "dotenv";
-import gracefulfs from "graceful-fs";
 import leveldown from "leveldown";
 
-const { promises: fs } = gracefulfs;
 const { makeEnv, parsers } = strattadbEnvironment;
 
 dotenv.config();

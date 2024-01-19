@@ -71,7 +71,7 @@ jobs:
             echo "::endgroup::"
           done
   node:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         subdir:
@@ -81,10 +81,10 @@ jobs:
       run:
         working-directory: ${{ matrix.subdir }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       - run: corepack pnpm install
       - name: Check code style
         run: |

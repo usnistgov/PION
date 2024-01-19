@@ -2,13 +2,15 @@
   "name": "@usnistgov/pion-ca",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "lint": "xo-yoursunny --fix",
-    "postinstall": "node postinstall.js",
+    "postinstall": "bash postinstall.sh",
     "preinstall": "npx only-allow pnpm",
+    "start": "node src/main.js",
     "typecheck": "tsc"
   },
-  "packageManager": "pnpm@7.2.0",
+  "packageManager": "pnpm@8.14.1",
   "dependencies": {
     "@ndn/cli-common": "https://ndnts-nightly.ndn.today/cli-common.tgz",
     "@ndn/keychain": "https://ndnts-nightly.ndn.today/keychain.tgz",
@@ -18,19 +20,17 @@
     "@ndn/repo": "https://ndnts-nightly.ndn.today/repo.tgz",
     "@ndn/tlv": "https://ndnts-nightly.ndn.today/tlv.tgz",
     "@strattadb/environment": "^8.0.2",
-    "dotenv": "^16.0.1",
-    "graceful-fs": "^4.2.10",
-    "hard-rejection": "^2.1.0",
+    "dotenv": "^16.3.1",
     "leveldown": "^6.1.1",
-    "yargs": "^17.5.1"
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@types/node": "^17.0.41",
-    "@types/yargs": "^17.0.10",
-    "@yoursunny/xo-config": "^0.49.0",
-    "typescript": "~4.7.3"
+    "@types/node": "^20.11.5",
+    "@types/yargs": "^17.0.32",
+    "@yoursunny/xo-config": "^0.56.2",
+    "typescript": "~5.3.3"
   },
   "engines": {
-    "node": "18.*"
+    "node": "20.*"
   }
 }
