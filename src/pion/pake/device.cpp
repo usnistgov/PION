@@ -5,15 +5,12 @@ namespace pake {
 
 static mbed::Entropy entropy;
 
-class Device::GotoState
-{
+class Device::GotoState {
 public:
   explicit GotoState(Device* device)
-    : m_device(device)
-  {}
+    : m_device(device) {}
 
-  bool operator()(State state)
-  {
+  bool operator()(State state) {
     m_device->m_state = state;
     if (state == State::Success || state == State::Failure) {
       m_device->finishSession();
@@ -22,8 +19,7 @@ public:
     return true;
   }
 
-  ~GotoState()
-  {
+  ~GotoState() {
     if (!m_set) {
       operator()(State::Failure);
     }
@@ -34,11 +30,9 @@ private:
   bool m_set = false;
 };
 
-class Device::PakeRequest : public packet_struct::PakeRequest
-{
+class Device::PakeRequest : public packet_struct::PakeRequest {
 public:
-  bool fromInterest(ndnph::Region&, const ndnph::Interest& interest)
-  {
+  bool fromInterest(ndnph::Region&, const ndnph::Interest& interest) {
     return ndnph::EvDecoder::decodeValue(
       interest.getAppParameters().makeDecoder(),
       ndnph::EvDecoder::def<TT::Spake2PA>([this](const ndnph::Decoder::Tlv& d) {
@@ -56,11 +50,9 @@ public:
   }
 };
 
-class Device::PakeResponse : public packet_struct::PakeResponse
-{
+class Device::PakeResponse : public packet_struct::PakeResponse {
 public:
-  ndnph::Data::Signed toData(ndnph::Region& region, const ndnph::Interest& pakeRequest) const
-  {
+  ndnph::Data::Signed toData(ndnph::Region& region, const ndnph::Interest& pakeRequest) const {
     ndnph::Encoder encoder(region);
     encoder.prepend(
       [this](ndnph::Encoder& encoder) {
@@ -81,11 +73,9 @@ public:
   }
 };
 
-class Device::ConfirmRequest : public packet_struct::ConfirmRequest
-{
+class Device::ConfirmRequest : public packet_struct::ConfirmRequest {
 public:
-  std::pair<bool, Encrypted> fromInterest(const ndnph::Interest& interest)
-  {
+  std::pair<bool, Encrypted> fromInterest(const ndnph::Interest& interest) {
     Encrypted encrypted;
     bool ok = ndnph::EvDecoder::decodeValue(
       interest.getAppParameters().makeDecoder(),
@@ -102,8 +92,7 @@ public:
     return std::make_pair(ok, encrypted);
   }
 
-  bool decrypt(ndnph::Region& region, const Encrypted& encrypted, EncryptSession& session)
-  {
+  bool decrypt(ndnph::Region& region, const Encrypted& encrypted, EncryptSession& session) {
     auto inner = session.decrypt(region, encrypted);
     return !!inner &&
            ndnph::EvDecoder::decodeValue(
@@ -121,8 +110,7 @@ public:
 template<typename Cert>
 static ndnph::Data::Signed
 makeConfirmResponseData(ndnph::Region& region, const ndnph::Name& confirmRequestName,
-                        EncryptSession& session, const Cert& tReq)
-{
+                        EncryptSession& session, const Cert& tReq) {
   auto encrypted =
     session.encrypt(region, [&](ndnph::Encoder& encoder) { encoder.prependTlv(TT::TReq, tReq); });
 
@@ -135,11 +123,10 @@ makeConfirmResponseData(ndnph::Region& region, const ndnph::Name& confirmRequest
   return data.sign(ndnph::NullKey::get());
 }
 
-class Device::CredentialRequest : public packet_struct::CredentialRequest
-{
+class Device::CredentialRequest : public packet_struct::CredentialRequest {
 public:
-  bool fromInterest(ndnph::Region& region, const ndnph::Interest& interest, EncryptSession& session)
-  {
+  bool fromInterest(ndnph::Region& region, const ndnph::Interest& interest,
+                    EncryptSession& session) {
     Encrypted encrypted;
     bool ok =
       ndnph::EvDecoder::decodeValue(interest.getAppParameters().makeDecoder(),
@@ -161,20 +148,17 @@ public:
 
 Device::Device(const Options& opts)
   : PacketHandler(opts.face, 192)
-  , m_pending(this)
-{}
+  , m_pending(this) {}
 
 void
-Device::end()
-{
+Device::end() {
   finishSession();
   m_state = State::Idle;
   m_oRegion.reset();
 }
 
 bool
-Device::begin(ndnph::tlv::Value password)
-{
+Device::begin(ndnph::tlv::Value password) {
   end();
   m_iRegion.reset(new decltype(m_iRegion)::element_type);
   m_oRegion.reset(new decltype(m_oRegion)::element_type);
@@ -193,8 +177,7 @@ Device::begin(ndnph::tlv::Value password)
 }
 
 void
-Device::loop()
-{
+Device::loop() {
   switch (m_state) {
     case State::FetchCaProfile: {
       sendFetchInterest(m_caProfileName, State::WaitCaProfile);
@@ -222,8 +205,7 @@ Device::loop()
 }
 
 bool
-Device::processInterest(ndnph::Interest interest)
-{
+Device::processInterest(ndnph::Interest interest) {
   switch (m_state) {
     case State::WaitPakeRequest: {
       return handlePakeRequest(interest);
@@ -241,8 +223,7 @@ Device::processInterest(ndnph::Interest interest)
 }
 
 bool
-Device::checkInterestVerb(ndnph::Interest interest, const ndnph::Component& expectedVerb)
-{
+Device::checkInterestVerb(ndnph::Interest interest, const ndnph::Component& expectedVerb) {
   const auto& name = interest.getName();
   return name.size() == getPionPrefix().size() + 3 && getPionPrefix().isPrefixOf(name) &&
          name[-2] == expectedVerb && interest.checkDigest() &&
@@ -250,15 +231,13 @@ Device::checkInterestVerb(ndnph::Interest interest, const ndnph::Component& expe
 }
 
 void
-Device::saveCurrentInterest(ndnph::Interest interest)
-{
+Device::saveCurrentInterest(ndnph::Interest interest) {
   m_lastInterestName = interest.getName().clone(*m_iRegion);
   m_lastInterestPacketInfo = *getCurrentPacketInfo();
 }
 
 bool
-Device::handlePakeRequest(ndnph::Interest interest)
-{
+Device::handlePakeRequest(ndnph::Interest interest) {
   if (!checkInterestVerb(interest, getPakeComponent())) {
     return false;
   }
@@ -284,8 +263,7 @@ Device::handlePakeRequest(ndnph::Interest interest)
 }
 
 bool
-Device::handleConfirmRequest(ndnph::Interest interest)
-{
+Device::handleConfirmRequest(ndnph::Interest interest) {
   if (!checkInterestVerb(interest, getConfirmComponent())) {
     return false;
   }
@@ -317,8 +295,7 @@ Device::handleConfirmRequest(ndnph::Interest interest)
 }
 
 bool
-Device::handleCredentialRequest(ndnph::Interest interest)
-{
+Device::handleCredentialRequest(ndnph::Interest interest) {
   if (!checkInterestVerb(interest, getCredentialComponent())) {
     return false;
   }
@@ -336,8 +313,7 @@ Device::handleCredentialRequest(ndnph::Interest interest)
 }
 
 void
-Device::sendFetchInterest(const ndnph::Name& name, State nextState)
-{
+Device::sendFetchInterest(const ndnph::Name& name, State nextState) {
   ndnph::StaticRegion<2048> region;
   GotoState gotoState(this);
   auto interest = region.create<ndnph::Interest>();
@@ -351,8 +327,7 @@ Device::sendFetchInterest(const ndnph::Name& name, State nextState)
 }
 
 bool
-Device::processData(ndnph::Data data)
-{
+Device::processData(ndnph::Data data) {
   if (!m_pending.matchPitToken()) {
     return false;
   }
@@ -373,8 +348,7 @@ Device::processData(ndnph::Data data)
 }
 
 bool
-Device::handleCaProfile(ndnph::Data data)
-{
+Device::handleCaProfile(ndnph::Data data) {
   if (!m_pending.match(data, m_caProfileName) || !m_caProfile.fromData(*m_oRegion, data)) {
     return false;
   }
@@ -390,8 +364,7 @@ Device::handleCaProfile(ndnph::Data data)
 }
 
 bool
-Device::handleAuthenticatorCert(ndnph::Data data)
-{
+Device::handleAuthenticatorCert(ndnph::Data data) {
   if (!m_pending.match(data, m_authenticatorCertName)) {
     return false;
   }
@@ -415,8 +388,7 @@ Device::handleAuthenticatorCert(ndnph::Data data)
 }
 
 bool
-Device::handleTempCert(ndnph::Data data)
-{
+Device::handleTempCert(ndnph::Data data) {
   if (!m_pending.match(data, m_tempCertName)) {
     return false;
   }
@@ -437,8 +409,7 @@ Device::handleTempCert(ndnph::Data data)
 }
 
 void
-Device::finishSession()
-{
+Device::finishSession() {
   m_session.end();
   m_spake2.reset();
   m_iRegion.reset();

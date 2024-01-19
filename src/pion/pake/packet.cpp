@@ -4,15 +4,13 @@ namespace pion {
 namespace pake {
 
 void
-EncryptSession::end()
-{
+EncryptSession::end() {
   ss = ndnph::Component();
   aes.reset();
 }
 
 bool
-EncryptSession::begin(ndnph::Region& region)
-{
+EncryptSession::begin(ndnph::Region& region) {
   uint8_t value[8];
   if (!ndnph::port::RandomSource::generate(value, sizeof(value))) {
     return false;
@@ -22,8 +20,7 @@ EncryptSession::begin(ndnph::Region& region)
 }
 
 bool
-EncryptSession::assign(ndnph::Region& region, ndnph::Name name)
-{
+EncryptSession::assign(ndnph::Region& region, ndnph::Name name) {
   if (!ss) {
     ss = name.slice(getPionPrefix().size(), getPionPrefix().size() + 1).clone(region)[0];
   }
@@ -31,21 +28,18 @@ EncryptSession::assign(ndnph::Region& region, ndnph::Name name)
 }
 
 ndnph::Name
-EncryptSession::makeName(ndnph::Region& region, const ndnph::Component& verb)
-{
+EncryptSession::makeName(ndnph::Region& region, const ndnph::Component& verb) {
   return getPionPrefix().append(region, ss, verb);
 }
 
 ndnph::tlv::Value
-EncryptSession::decrypt(ndnph::Region& region, const Encrypted& encrypted)
-{
+EncryptSession::decrypt(ndnph::Region& region, const Encrypted& encrypted) {
   return aes->decrypt(region, encrypted, ss.value(), ss.length());
 }
 
 ndnph::Name
 computeTempSubjectName(ndnph::Region& region, ndnph::Name authenticatorCertName,
-                       ndnph::Name deviceName)
-{
+                       ndnph::Name deviceName) {
   ndnph::Name authenticatorName =
     ndnph::certificate::toSubjectName(region, authenticatorCertName, false);
   ndnph::Name head;

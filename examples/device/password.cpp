@@ -6,8 +6,7 @@ static constexpr size_t passwordL = 8;
 static uint8_t passwordV[passwordL + 1];
 
 void
-doMakePassword()
-{
+doMakePassword() {
   GotoState gotoState;
   if (!ndnph::port::RandomSource::generate(passwordV, passwordL)) {
     return;
@@ -24,8 +23,7 @@ doMakePassword()
 }
 
 ndnph::tlv::Value
-getPassword()
-{
+getPassword() {
   return ndnph::tlv::Value(passwordV, passwordL);
 }
 

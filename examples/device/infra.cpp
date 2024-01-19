@@ -25,11 +25,10 @@ static ndnph::Data oCert;
 static std::unique_ptr<ndnph::PingServer> pingServer;
 
 void
-doInfraConnect()
-{
+doInfraConnect() {
   GotoState gotoState;
 
-  char ncBuf[64] = { 0 };
+  char ncBuf[64] = {0};
   std::array<const char*, NC_ITEMS> nc;
   {
 #ifndef PION_SKIP_PAKE
@@ -88,8 +87,7 @@ doInfraConnect()
 #ifndef PION_SKIP_NDNCERT
 
 static void
-ndncertCallback(void*, ndnph::Data cert)
-{
+ndncertCallback(void*, ndnph::Data cert) {
   GotoState gotoState;
 
   if (!cert) {
@@ -107,8 +105,7 @@ ndncertCallback(void*, ndnph::Data cert)
 }
 
 static bool
-initNdncert()
-{
+initNdncert() {
   auto pakeDevice = getPakeDevice();
   oRegion.reset();
   if (!ndnph::ec::generate(oRegion, pakeDevice->getDeviceName(), pvt, pub)) {
@@ -122,7 +119,7 @@ initNdncert()
   ndnph::ndncert::Client::requestCertificate(ndnph::ndncert::Client::Options{
     .face = *face,
     .profile = pakeDevice->getCaProfile(),
-    .challenges = { challenge.get() },
+    .challenges = {challenge.get()},
     .pub = pub,
     .pvt = pvt,
     .cb = ndncertCallback,
@@ -134,8 +131,7 @@ initNdncert()
 #endif // PION_SKIP_NDNCERT
 
 void
-waitNdncert()
-{
+waitNdncert() {
   face->loop();
 
 #ifndef PION_SKIP_NDNCERT
@@ -150,33 +146,28 @@ waitNdncert()
 }
 
 void
-deleteNdncert()
-{
+deleteNdncert() {
   challenge.reset();
 }
 
 const ndnph::Data&
-getDeviceCert()
-{
+getDeviceCert() {
   return oCert;
 }
 
 const ndnph::PrivateKey&
-getDeviceSigner()
-{
+getDeviceSigner() {
   return pvt;
 }
 
 static void
-initPingServer()
-{
+initPingServer() {
   pingServer.reset(
     new ndnph::PingServer(ndnph::certificate::toSubjectName(oRegion, pvt.getName()), *face, pvt));
 }
 
 void
-runPingServer()
-{
+runPingServer() {
   if (pingServer == nullptr) {
     initPingServer();
   }

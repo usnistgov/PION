@@ -7,11 +7,9 @@ namespace pion {
 namespace pake {
 
 /** @brief PION Onboarding Protocol - PAKE stage, device side. */
-class Device : public ndnph::PacketHandler
-{
+class Device : public ndnph::PacketHandler {
 public:
-  struct Options
-  {
+  struct Options {
     /** @brief Face for communication. */
     ndnph::Face& face;
   };
@@ -22,8 +20,7 @@ public:
 
   bool begin(ndnph::tlv::Value password);
 
-  enum class State
-  {
+  enum class State {
     Idle,
     WaitPakeRequest,
     WaitConfirmRequest,
@@ -38,37 +35,31 @@ public:
     Failure,
   };
 
-  State getState() const
-  {
+  State getState() const {
     return m_state;
   }
 
-  const ndnph::ndncert::client::CaProfile& getCaProfile() const
-  {
+  const ndnph::ndncert::client::CaProfile& getCaProfile() const {
     assert(m_state == State::Success);
     return m_caProfile;
   }
 
-  const ndnph::tlv::Value& getNetworkCredential() const
-  {
+  const ndnph::tlv::Value& getNetworkCredential() const {
     assert(m_state == State::Success);
     return m_networkCredential;
   }
 
-  const ndnph::Name& getDeviceName() const
-  {
+  const ndnph::Name& getDeviceName() const {
     assert(m_state == State::Success);
     return m_deviceName;
   }
 
-  const ndnph::Data& getTempCert() const
-  {
+  const ndnph::Data& getTempCert() const {
     assert(m_state == State::Success);
     return m_tempCert;
   }
 
-  const ndnph::PrivateKey& getTempSigner() const
-  {
+  const ndnph::PrivateKey& getTempSigner() const {
     assert(m_state == State::Success);
     return m_tPvt;
   }

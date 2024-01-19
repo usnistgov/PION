@@ -5,22 +5,18 @@ namespace pake {
 
 static mbed::Entropy entropy;
 
-class Authenticator::GotoState
-{
+class Authenticator::GotoState {
 public:
   explicit GotoState(Authenticator* authenticator)
-    : m_authenticator(authenticator)
-  {}
+    : m_authenticator(authenticator) {}
 
-  bool operator()(State state)
-  {
+  bool operator()(State state) {
     m_authenticator->m_state = state;
     m_set = true;
     return true;
   }
 
-  ~GotoState()
-  {
+  ~GotoState() {
     if (!m_set) {
       m_authenticator->m_state = State::Failure;
     }
@@ -31,11 +27,9 @@ private:
   bool m_set = false;
 };
 
-class Authenticator::PakeRequest : public packet_struct::PakeRequest
-{
+class Authenticator::PakeRequest : public packet_struct::PakeRequest {
 public:
-  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, EncryptSession& session) const
-  {
+  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, EncryptSession& session) const {
     ndnph::Encoder encoder(region);
     encoder.prepend(
       [this](ndnph::Encoder& encoder) {
@@ -56,11 +50,9 @@ public:
   }
 };
 
-class Authenticator::PakeResponse : public packet_struct::PakeResponse
-{
+class Authenticator::PakeResponse : public packet_struct::PakeResponse {
 public:
-  bool fromData(ndnph::Region&, const ndnph::Data& data)
-  {
+  bool fromData(ndnph::Region&, const ndnph::Data& data) {
     return ndnph::EvDecoder::decodeValue(
       data.getContent().makeDecoder(),
       ndnph::EvDecoder::def<TT::Spake2PB>([this](const ndnph::Decoder::Tlv& d) {
@@ -80,11 +72,9 @@ public:
   }
 };
 
-class Authenticator::ConfirmRequest : public packet_struct::ConfirmRequest
-{
+class Authenticator::ConfirmRequest : public packet_struct::ConfirmRequest {
 public:
-  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, EncryptSession& session) const
-  {
+  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, EncryptSession& session) const {
     auto encrypted = session.encrypt(
       region, [this](ndnph::Encoder& encoder) { encoder.prependTlv(TT::Nc, nc); },
       [this](ndnph::Encoder& encoder) { encoder.prependTlv(TT::CaProfileName, caProfileName); },
@@ -109,11 +99,9 @@ public:
   }
 };
 
-class Authenticator::ConfirmResponse : public packet_struct::ConfirmResponse
-{
+class Authenticator::ConfirmResponse : public packet_struct::ConfirmResponse {
 public:
-  bool fromData(ndnph::Region& region, const ndnph::Data& data, EncryptSession& session)
-  {
+  bool fromData(ndnph::Region& region, const ndnph::Data& data, EncryptSession& session) {
     Encrypted encrypted;
     bool ok = ndnph::EvDecoder::decodeValue(
       data.getContent().makeDecoder(), ndnph::EvDecoder::def<TT::InitializationVector>(&encrypted),
@@ -137,11 +125,9 @@ public:
   ndnph::EcPublicKey tPub;
 };
 
-class Authenticator::CredentialRequest : public packet_struct::CredentialRequest
-{
+class Authenticator::CredentialRequest : public packet_struct::CredentialRequest {
 public:
-  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, EncryptSession& session) const
-  {
+  ndnph::Interest::Parameterized toInterest(ndnph::Region& region, EncryptSession& session) const {
     auto encrypted = session.encrypt(region, [this](ndnph::Encoder& encoder) {
       encoder.prependTlv(TT::IssuedCertName, tempCertName);
     });
@@ -164,12 +150,10 @@ Authenticator::Authenticator(const Options& opts)
   , m_nc(opts.nc)
   , m_deviceName(opts.deviceName)
   , m_pending(this)
-  , m_region(4096)
-{}
+  , m_region(4096) {}
 
 void
-Authenticator::end()
-{
+Authenticator::end() {
   m_session.end();
   m_spake2.reset();
   m_state = State::Idle;
@@ -177,8 +161,7 @@ Authenticator::end()
 }
 
 bool
-Authenticator::begin(ndnph::tlv::Value password)
-{
+Authenticator::begin(ndnph::tlv::Value password) {
   end();
 
   if (!m_session.begin(m_region)) {
@@ -199,8 +182,7 @@ Authenticator::begin(ndnph::tlv::Value password)
 }
 
 void
-Authenticator::loop()
-{
+Authenticator::loop() {
   switch (m_state) {
     case State::SendPakeRequest: {
       sendPakeRequest();
@@ -224,8 +206,7 @@ Authenticator::loop()
 }
 
 bool
-Authenticator::processData(ndnph::Data data)
-{
+Authenticator::processData(ndnph::Data data) {
   if (!m_pending.matchPitToken()) {
     return false;
   }
@@ -247,8 +228,7 @@ Authenticator::processData(ndnph::Data data)
 }
 
 void
-Authenticator::sendPakeRequest()
-{
+Authenticator::sendPakeRequest() {
   ndnph::StaticRegion<2048> region;
   GotoState gotoState(this);
   PakeRequest req;
@@ -258,8 +238,7 @@ Authenticator::sendPakeRequest()
 }
 
 bool
-Authenticator::handlePakeResponse(ndnph::Data data)
-{
+Authenticator::handlePakeResponse(ndnph::Data data) {
   ndnph::StaticRegion<2048> region;
   PakeResponse res;
   if (!res.fromData(region, data)) {
@@ -286,8 +265,7 @@ Authenticator::handlePakeResponse(ndnph::Data data)
 }
 
 bool
-Authenticator::handleConfirmResponse(ndnph::Data data)
-{
+Authenticator::handleConfirmResponse(ndnph::Data data) {
   ndnph::StaticRegion<2048> region;
   ConfirmResponse res;
   if (!res.fromData(region, data, m_session)) {
@@ -316,8 +294,7 @@ Authenticator::handleConfirmResponse(ndnph::Data data)
 }
 
 void
-Authenticator::sendCredentialRequest()
-{
+Authenticator::sendCredentialRequest() {
   ndnph::StaticRegion<2048> region;
   GotoState gotoState(this);
   CredentialRequest req;
@@ -327,15 +304,14 @@ Authenticator::sendCredentialRequest()
 }
 
 bool
-Authenticator::processInterest(ndnph::Interest interest)
-{
-  if (interest.match(m_caProfile)) {
+Authenticator::processInterest(ndnph::Interest interest) {
+  if (m_caProfile.canSatisfy(interest)) {
     return reply(m_caProfile);
   }
-  if (interest.match(m_cert)) {
+  if (m_cert.canSatisfy(interest)) {
     return reply(m_cert);
   }
-  if (!!m_issued && interest.match(m_issued)) {
+  if (!!m_issued && m_issued.canSatisfy(interest)) {
     return reply(m_issued);
   }
   return false;

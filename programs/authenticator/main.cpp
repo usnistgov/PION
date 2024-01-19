@@ -9,8 +9,7 @@ static ndnph::tlv::Value pakePassword;
 static ndnph::tlv::Value networkCredential;
 
 static bool
-parseArgs(int argc, char** argv)
-{
+parseArgs(int argc, char** argv) {
   int c;
   while ((c = getopt(argc, argv, "P:i:n:p:N:")) != -1) {
     switch (c) {
@@ -42,8 +41,7 @@ parseArgs(int argc, char** argv)
 }
 
 int
-main(int argc, char** argv)
-{
+main(int argc, char** argv) {
   if (!parseArgs(argc, argv)) {
     fprintf(stderr,
             "%s -P CA-PROFILE-FILE -i AK-SLOT -n DEVICE-NAME -p PASSWORD -N NETWORK-CREDENTIAL\n",
@@ -69,12 +67,12 @@ main(int argc, char** argv)
   }
 
   pion::pake::Authenticator authenticator(pion::pake::Authenticator::Options{
-    face : face,
-    caProfile : caProfile,
-    cert : cert,
-    signer : signer,
-    nc : networkCredential,
-    deviceName : deviceName,
+    face: face,
+    caProfile: caProfile,
+    cert: cert,
+    signer: signer,
+    nc: networkCredential,
+    deviceName: deviceName,
   });
   if (!authenticator.begin(pakePassword)) {
     fprintf(stderr, "authenticator.begin error\n");

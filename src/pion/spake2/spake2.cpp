@@ -8,16 +8,15 @@ namespace spake2 {
 namespace detail {
 
 void
-appendToTranscript(std::vector<uint8_t>& transcript, const uint8_t* buf, size_t buflen)
-{
+appendToTranscript(std::vector<uint8_t>& transcript, const uint8_t* buf, size_t buflen) {
   uint64_t len = htole64(buflen);
   auto lenptr = reinterpret_cast<const uint8_t*>(&len);
   transcript.insert(transcript.end(), lenptr, lenptr + sizeof(len));
   transcript.insert(transcript.end(), buf, buf + buflen);
 }
 
-const ndnph::mbedtls::Mpi ContextBase::s_one{ 1 };
-const ndnph::mbedtls::Mpi ContextBase::s_minusOne{ -1 };
+const ndnph::mbedtls::Mpi ContextBase::s_one{1};
+const ndnph::mbedtls::Mpi ContextBase::s_minusOne{-1};
 
 } // namespace detail
 

@@ -18,8 +18,7 @@
 #endif
 
 void
-setup()
-{
+setup() {
 #ifdef BASELINE_WANT_SERIAL
   Serial.begin(115200);
   Serial.println();
@@ -63,5 +62,4 @@ setup()
 }
 
 void
-loop()
-{}
+loop() {}

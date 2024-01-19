@@ -25,8 +25,7 @@
 
 namespace spake2 {
 
-enum class Role
-{
+enum class Role {
   Alice,
   Bob,
 };
@@ -35,21 +34,18 @@ namespace detail {
 
 // std::max is not constexpr in C++11
 template<typename T>
-constexpr const T&
-max(const T& a, const T& b)
-{
+const constexpr T&
+max(const T& a, const T& b) {
   return a < b ? b : a;
 }
 
 void
 appendToTranscript(std::vector<uint8_t>& transcript, const uint8_t* buf, size_t buflen);
 
-class ContextBase
-{
+class ContextBase {
 protected:
   // Protocol state machine: each party goes through each of these states in order
-  enum class State
-  {
+  enum class State {
     Initial,
     AwaitingPublicShare,
     SendingConfirmation,
@@ -65,11 +61,9 @@ protected:
 
 } // namespace detail
 
-struct P256
-{
+struct P256 {
   static constexpr mbedtls_ecp_group_id Id = MBEDTLS_ECP_DP_SECP256R1;
-  enum
-  {
+  enum {
     ScalarSize = 32,
     UncompressedPointSize = 65,
   };
@@ -78,11 +72,9 @@ struct P256
   static const uint8_t N[UncompressedPointSize];
 };
 
-struct P384
-{
+struct P384 {
   static constexpr mbedtls_ecp_group_id Id = MBEDTLS_ECP_DP_SECP384R1;
-  enum
-  {
+  enum {
     ScalarSize = 48,
     UncompressedPointSize = 97,
   };
@@ -91,11 +83,9 @@ struct P384
   static const uint8_t N[UncompressedPointSize];
 };
 
-struct P521
-{
+struct P521 {
   static constexpr mbedtls_ecp_group_id Id = MBEDTLS_ECP_DP_SECP521R1;
-  enum
-  {
+  enum {
     ScalarSize = 66,
     UncompressedPointSize = 133,
   };
@@ -104,20 +94,16 @@ struct P521
   static const uint8_t N[UncompressedPointSize];
 };
 
-struct SHA256
-{
+struct SHA256 {
   static constexpr mbedtls_md_type_t Type = MBEDTLS_MD_SHA256;
-  enum
-  {
+  enum {
     OutputSize = 32,
   };
 };
 
-struct SHA512
-{
+struct SHA512 {
   static constexpr mbedtls_md_type_t Type = MBEDTLS_MD_SHA512;
-  enum
-  {
+  enum {
     OutputSize = 64,
   };
 };
@@ -131,13 +117,11 @@ struct SHA512
  * @sa https://www.ietf.org/archive/id/draft-irtf-cfrg-spake2-26.html
  */
 template<Role role, typename Group = P256, typename Hash = SHA256>
-class Context final : detail::ContextBase
-{
+class Context final : detail::ContextBase {
 public:
   static_assert(role == Role::Alice || role == Role::Bob, "");
 
-  enum
-  {
+  enum {
     FirstMessageSize = Group::UncompressedPointSize,
     SecondMessageSize = Hash::OutputSize,
     SharedKeySize = Hash::OutputSize / 2,
@@ -161,8 +145,7 @@ public:
    * @brief Returns the shared key established by the SPAKE2 exchange.
    * @pre Can only be called after processSecondMessage() returns true.
    */
-  const std::array<uint8_t, SharedKeySize>& getSharedKey() const noexcept
-  {
+  const std::array<uint8_t, SharedKeySize>& getSharedKey() const noexcept {
     assert(m_state == State::Done);
     return m_key;
   }
@@ -189,8 +172,7 @@ private:
 };
 
 template<Role role, typename Group, typename Hash>
-Context<role, Group, Hash>::Context(mbedtls_entropy_context* entropyCtx) noexcept
-{
+Context<role, Group, Hash>::Context(mbedtls_entropy_context* entropyCtx) noexcept {
   assert(entropyCtx != nullptr);
 
   auto mdInfo = mbedtls_md_info_from_type(Hash::Type);
@@ -219,8 +201,7 @@ template<Role role, typename Group, typename Hash>
 bool
 Context<role, Group, Hash>::start(const uint8_t* pw, size_t pwLen, const uint8_t* myId,
                                   size_t myIdLen, const uint8_t* peerId, size_t peerIdLen,
-                                  const uint8_t* aad, size_t aadLen) noexcept
-{
+                                  const uint8_t* aad, size_t aadLen) noexcept {
   // TODO: sanity-check state machine?
 
   // Allocate memory for the transcript and copy the identities
@@ -288,8 +269,7 @@ Context<role, Group, Hash>::start(const uint8_t* pw, size_t pwLen, const uint8_t
 
 template<Role role, typename Group, typename Hash>
 bool
-Context<role, Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) noexcept
-{
+Context<role, Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgLen) noexcept {
   if (m_state != State::Initial) {
     return false;
   }
@@ -341,8 +321,7 @@ Context<role, Group, Hash>::generateFirstMessage(uint8_t* outMsg, size_t outMsgL
 
 template<Role role, typename Group, typename Hash>
 bool
-Context<role, Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen) noexcept
-{
+Context<role, Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inMsgLen) noexcept {
   if (m_state != State::AwaitingPublicShare) {
     return false;
   }
@@ -496,8 +475,7 @@ Context<role, Group, Hash>::processFirstMessage(const uint8_t* inMsg, size_t inM
 
 template<Role role, typename Group, typename Hash>
 bool
-Context<role, Group, Hash>::generateSecondMessage(uint8_t* outMsg, size_t outMsgLen) noexcept
-{
+Context<role, Group, Hash>::generateSecondMessage(uint8_t* outMsg, size_t outMsgLen) noexcept {
   if (m_state != State::SendingConfirmation) {
     return false;
   }
@@ -511,8 +489,7 @@ Context<role, Group, Hash>::generateSecondMessage(uint8_t* outMsg, size_t outMsg
 
 template<Role role, typename Group, typename Hash>
 bool
-Context<role, Group, Hash>::processSecondMessage(const uint8_t* inMsg, size_t inMsgLen) noexcept
-{
+Context<role, Group, Hash>::processSecondMessage(const uint8_t* inMsg, size_t inMsgLen) noexcept {
   if (m_state != State::AwaitingConfirmation) {
     return false;
   }

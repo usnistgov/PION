@@ -27,14 +27,12 @@ namespace packet_struct {
     }                                                                                              \
   } while (false)
 
-struct PakeRequest
-{
+struct PakeRequest {
   uint8_t spake2pa[Spake2Device::FirstMessageSize];
   ndnph::Name authenticatorCertName;
 
 #ifdef NDNPH_PRINT_OSTREAM
-  friend std::ostream& operator<<(std::ostream& os, const PakeRequest& p)
-  {
+  friend std::ostream& operator<<(std::ostream& os, const PakeRequest& p) {
     os << "PakeRequest(";
     PION_PACKET_PRINT_FIELD_HEX(spake2pa);
     os << ",authenticatorCertName=" << p.authenticatorCertName;
@@ -43,14 +41,12 @@ struct PakeRequest
 #endif // NDNPH_PRINT_OSTREAM
 };
 
-struct PakeResponse
-{
+struct PakeResponse {
   uint8_t spake2pb[Spake2Device::FirstMessageSize];
   uint8_t spake2cb[Spake2Device::SecondMessageSize];
 
 #ifdef NDNPH_PRINT_OSTREAM
-  friend std::ostream& operator<<(std::ostream& os, const PakeResponse& p)
-  {
+  friend std::ostream& operator<<(std::ostream& os, const PakeResponse& p) {
     os << "PakeResponse(";
     PION_PACKET_PRINT_FIELD_HEX(spake2pb);
     os << ",";
@@ -60,8 +56,7 @@ struct PakeResponse
 #endif // NDNPH_PRINT_OSTREAM
 };
 
-struct ConfirmRequest
-{
+struct ConfirmRequest {
   uint8_t spake2ca[Spake2Device::SecondMessageSize];
   ndnph::tlv::Value nc;
   ndnph::Name caProfileName;
@@ -69,8 +64,7 @@ struct ConfirmRequest
   uint64_t timestamp;
 
 #ifdef NDNPH_PRINT_OSTREAM
-  friend std::ostream& operator<<(std::ostream& os, const ConfirmRequest& p)
-  {
+  friend std::ostream& operator<<(std::ostream& os, const ConfirmRequest& p) {
     os << "ConfirmRequest(";
     PION_PACKET_PRINT_FIELD_HEX(spake2ca);
     os << ",nc.size=" << p.nc.size();
@@ -82,13 +76,11 @@ struct ConfirmRequest
 #endif // NDNPH_PRINT_OSTREAM
 };
 
-struct ConfirmResponse
-{
+struct ConfirmResponse {
   ndnph::Data tempCertReq;
 
 #ifdef NDNPH_PRINT_OSTREAM
-  friend std::ostream& operator<<(std::ostream& os, const ConfirmResponse& p)
-  {
+  friend std::ostream& operator<<(std::ostream& os, const ConfirmResponse& p) {
     os << "ConfirmResponse(";
     os << "tempCertReq=" << p.tempCertReq.getName();
     return os << ")";
@@ -96,13 +88,11 @@ struct ConfirmResponse
 #endif // NDNPH_PRINT_OSTREAM
 };
 
-struct CredentialRequest
-{
+struct CredentialRequest {
   ndnph::Name tempCertName;
 
 #ifdef NDNPH_PRINT_OSTREAM
-  friend std::ostream& operator<<(std::ostream& os, const CredentialRequest& p)
-  {
+  friend std::ostream& operator<<(std::ostream& os, const CredentialRequest& p) {
     os << "CredentialRequest(";
     os << "tempCertName=" << p.tempCertName;
     return os << ")";
@@ -110,11 +100,9 @@ struct CredentialRequest
 #endif // NDNPH_PRINT_OSTREAM
 };
 
-struct CredentialResponse
-{
+struct CredentialResponse {
 #ifdef NDNPH_PRINT_OSTREAM
-  friend std::ostream& operator<<(std::ostream& os, const CredentialResponse&)
-  {
+  friend std::ostream& operator<<(std::ostream& os, const CredentialResponse&) {
     os << "CredentialResponse(";
     return os << ")";
   }
@@ -132,8 +120,7 @@ using Encrypted =
                           AesGcm::TagLen::value, TT::EncryptedPayload>;
 
 /** @brief Session ID and encryption context. */
-class EncryptSession
-{
+class EncryptSession {
 public:
   /** @brief Clear state. */
   void end();
@@ -157,8 +144,7 @@ public:
    * @brief Import AES-GCM key.
    * @return whether success.
    */
-  bool importKey(const AesGcm::Key& key)
-  {
+  bool importKey(const AesGcm::Key& key) {
     aes.reset(new AesGcm());
     return aes->import(key);
   }
@@ -170,8 +156,7 @@ public:
    * @return encrypted-message structure.
    */
   template<typename... Arg>
-  ndnph::tlv::Value encrypt(ndnph::Region& region, const Arg&... arg)
-  {
+  ndnph::tlv::Value encrypt(ndnph::Region& region, const Arg&... arg) {
     ndnph::Encoder inner(region);
     inner.prepend(arg...);
     inner.trim();

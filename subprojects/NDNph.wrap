@@ -1,6 +1,6 @@
 [wrap-git]
 url = https://github.com/yoursunny/NDNph.git
-revision = 67fb73e7b29bd83ba8dc31250404a1016ee56bc8
+revision = 2b5a287285dc369ffda410bed2951a1b101d2cdc
 
 [provide]
 NDNph = ndnph_dep

@@ -8,8 +8,7 @@ namespace pake {
 
 /** @brief TLV-TYPE assigned numbers. */
 namespace TT {
-enum
-{
+enum {
   Spake2PA = 0x8F01,
   AuthenticatorCertName = 0x8F0D,
   Spake2PB = 0x8F03,
@@ -25,8 +24,7 @@ using namespace ndnph::ndncert::TT;
 
 /** @brief Return '/localhop/32=pion' name prefix. */
 inline ndnph::Name
-getPionPrefix()
-{
+getPionPrefix() {
   static const uint8_t tlv[]{
     0x08, 0x08, 'l', 'o', 'c', 'a', 'l', 'h', 'o', 'p', 0x20, 0x04, 'p', 'i', 'o', 'n',
   };
@@ -36,47 +34,42 @@ getPionPrefix()
 
 /** @brief Return 'pake' component. */
 inline ndnph::Component
-getPakeComponent()
-{
-  static const uint8_t tlv[]{ 0x08, 0x04, 'p', 'a', 'k', 'e' };
+getPakeComponent() {
+  static const uint8_t tlv[]{0x08, 0x04, 'p', 'a', 'k', 'e'};
   static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
   return comp;
 }
 
 /** @brief Return 'confirm' component. */
 inline ndnph::Component
-getConfirmComponent()
-{
-  static const uint8_t tlv[]{ 0x08, 0x07, 'c', 'o', 'n', 'f', 'i', 'r', 'm' };
+getConfirmComponent() {
+  static const uint8_t tlv[]{0x08, 0x07, 'c', 'o', 'n', 'f', 'i', 'r', 'm'};
   static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
   return comp;
 }
 
 /** @brief Return 'credential' component. */
 inline ndnph::Component
-getCredentialComponent()
-{
-  static const uint8_t tlv[]{ 0x08, 0x0A, 'c', 'r', 'e', 'd', 'e', 'n', 't', 'i', 'a', 'l' };
+getCredentialComponent() {
+  static const uint8_t tlv[]{0x08, 0x0A, 'c', 'r', 'e', 'd', 'e', 'n', 't', 'i', 'a', 'l'};
   static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
   return comp;
 }
 
 /** @brief Return '32=pion-authenticator' component. */
 inline ndnph::Component
-getAuthenticatorComponent()
-{
-  static const uint8_t tlv[]{ 0x20, 0x12, 'p', 'i', 'o', 'n', '-', 'a', 'u', 't',
-                              'h',  'e',  'n', 't', 'i', 'c', 'a', 't', 'o', 'r' };
+getAuthenticatorComponent() {
+  static const uint8_t tlv[]{0x20, 0x12, 'p', 'i', 'o', 'n', '-', 'a', 'u', 't',
+                             'h',  'e',  'n', 't', 'i', 'c', 'a', 't', 'o', 'r'};
   static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
   return comp;
 }
 
 /** @brief Return '32=pion-authenticated' component. */
 inline ndnph::Component
-getAuthenticatedComponent()
-{
-  static const uint8_t tlv[]{ 0x20, 0x12, 'p', 'i', 'o', 'n', '-', 'a', 'u', 't',
-                              'h',  'e',  'n', 't', 'i', 'c', 'a', 't', 'e', 'd' };
+getAuthenticatedComponent() {
+  static const uint8_t tlv[]{0x20, 0x12, 'p', 'i', 'o', 'n', '-', 'a', 'u', 't',
+                             'h',  'e',  'n', 't', 'i', 'c', 'a', 't', 'e', 'd'};
   static const ndnph::Component comp = ndnph::Component::constant(tlv, sizeof(tlv));
   return comp;
 }

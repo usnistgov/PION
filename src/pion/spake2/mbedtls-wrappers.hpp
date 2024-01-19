@@ -9,31 +9,25 @@
 namespace mbed {
 
 template<typename T, void (*InitFunc)(T*), void (*FreeFunc)(T*)>
-class Object
-{
+class Object {
 public:
-  Object() noexcept
-  {
+  Object() noexcept {
     InitFunc(&m_obj);
   }
 
-  ~Object() noexcept
-  {
+  ~Object() noexcept {
     FreeFunc(&m_obj);
   }
 
-  T* operator->() noexcept
-  {
+  T* operator->() noexcept {
     return &m_obj;
   }
 
-  operator T*() noexcept
-  {
+  operator T*() noexcept {
     return &m_obj;
   }
 
-  operator const T*() const noexcept
-  {
+  operator const T*() const noexcept {
     return &m_obj;
   }
 

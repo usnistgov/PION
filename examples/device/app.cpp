@@ -6,8 +6,7 @@ State state = State::Idle;
 uint32_t minFreeHeap = std::numeric_limits<uint32_t>::max();
 
 void
-loop()
-{
+loop() {
   {
     uint32_t freeHeap = ESP.getFreeHeap();
     minFreeHeap = std::min(minFreeHeap, freeHeap);

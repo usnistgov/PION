@@ -2,13 +2,11 @@
 
 namespace pion_device_app {
 
-class FragReass
-{
+class FragReass {
 public:
   explicit FragReass(ndnph::Face& face, uint16_t mtu)
     : m_fragmenter(m_region, mtu)
-    , m_reassembler(m_region)
-  {
+    , m_reassembler(m_region) {
     face.setFragmenter(m_fragmenter);
     face.setReassembler(m_reassembler);
   }
@@ -32,8 +30,7 @@ static std::unique_ptr<ndnph::Face> face;
 static std::unique_ptr<pion::pake::Device> device;
 
 void
-doDirectConnect()
-{
+doDirectConnect() {
   GotoState gotoState;
 
 #if defined(PION_DIRECT_WIFI)
@@ -76,10 +73,9 @@ doDirectConnect()
 
 #ifndef PION_SKIP_PAKE
 static bool
-initPake()
-{
+initPake() {
   device.reset(new pion::pake::Device(pion::pake::Device::Options{
-    face : *face,
+    face: *face,
   }));
   if (!device->begin(getPassword())) {
     PION_LOG_ERR("device.begin error");
@@ -90,8 +86,7 @@ initPake()
 #endif // PION_SKIP_PAKE
 
 void
-waitPake()
-{
+waitPake() {
   face->loop();
 
 #ifndef PION_SKIP_PAKE
@@ -122,8 +117,7 @@ waitPake()
 }
 
 void
-doDirectDisconnect()
-{
+doDirectDisconnect() {
   for (int i = 0; i < 20; ++i) {
     face->loop();
     delay(100);
@@ -147,14 +141,12 @@ doDirectDisconnect()
 }
 
 const pion::pake::Device*
-getPakeDevice()
-{
+getPakeDevice() {
   return device.get();
 }
 
 void
-deletePakeDevice()
-{
+deletePakeDevice() {
   device.reset();
 }
 

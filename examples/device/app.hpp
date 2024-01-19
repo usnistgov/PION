@@ -7,8 +7,7 @@
 
 namespace pion_device_app {
 
-enum class State
-{
+enum class State {
   Idle,
   MakePassword,
   WaitDirectConnect,
@@ -23,18 +22,15 @@ enum class State
 
 extern State state;
 
-class GotoState
-{
+class GotoState {
 public:
-  bool operator()(State st)
-  {
+  bool operator()(State st) {
     state = st;
     m_set = true;
     return true;
   }
 
-  ~GotoState()
-  {
+  ~GotoState() {
     if (!m_set) {
       state = State::Failure;
     }

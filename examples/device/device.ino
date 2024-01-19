@@ -2,8 +2,7 @@
 #include <esp_wifi.h>
 
 void
-setup()
-{
+setup() {
 #if ARDUINO_USB_CDC_ON_BOOT
   while (!Serial) {
     delay(1);
@@ -42,8 +41,7 @@ setup()
 }
 
 void
-loop()
-{
+loop() {
   pion_device_app::loop();
   delay(1);
 }

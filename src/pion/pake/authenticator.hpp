@@ -7,11 +7,9 @@ namespace pion {
 namespace pake {
 
 /** @brief PION Onboarding Protocol - PAKE stage, authenticator side. */
-class Authenticator : public ndnph::PacketHandler
-{
+class Authenticator : public ndnph::PacketHandler {
 public:
-  struct Options
-  {
+  struct Options {
     /** @brief Face for communication. */
     ndnph::Face& face;
 
@@ -37,8 +35,7 @@ public:
 
   bool begin(ndnph::tlv::Value password);
 
-  enum class State
-  {
+  enum class State {
     Idle,
     SendPakeRequest,
     WaitPakeResponse,
@@ -49,8 +46,7 @@ public:
     Failure,
   };
 
-  State getState() const
-  {
+  State getState() const {
     return m_state;
   }
 
