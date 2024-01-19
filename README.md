@@ -4,7 +4,7 @@ This library implements a secure device onboarding protocol for Named Data Netwo
 It contains three components corresponding to the roles defined in the protocol: device, authenticator, certificate authority.
 
 This software is developed at the [Smart Connected Systems Division](https://www.nist.gov/ctl/smart-connected-systems-division) of the [National Institute of Standards and Technology](https://www.nist.gov/).
-It is in beta stage and will continue to be updated.
+It is completed and will see occasional maintenance updates.
 
 If you use PION in your research, please cite the PION paper instead of this GitHub repository:
 
