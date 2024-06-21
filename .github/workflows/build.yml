@@ -27,51 +27,27 @@ jobs:
           meson compile -C build
   arduino:
     runs-on: ubuntu-22.04
-    env:
-      ARDUINO_BOARD_MANAGER_ADDITIONAL_URLS: |
-        https://espressif.github.io/arduino-esp32/package_esp32_index.json
     steps:
-      - uses: arduino/setup-arduino-cli@v1
-      - id: cores
-        name: Refresh Arduino cores
-        run: |
-          arduino-cli version
-          arduino-cli update
-          echo d=$(sha256sum ~/.arduino15/package_*index.json | sha256sum | cut -d' ' -f1) >> $GITHUB_OUTPUT
-      - name: Cache Arduino cores
-        uses: actions/cache@v4
-        with:
-          path: ~/.arduino15/staging/packages
-          key: cores-${{ steps.cores.outputs.d }}
-      - name: Install Arduino cores
-        run: |
-          arduino-cli core install esp32:esp32@2.0.17
-          arduino-cli lib install NimBLE-Arduino@1.4.1
       - uses: actions/checkout@v4
-      - name: Prepare Arduino libraries
-        run: |
-          mkdir -p "$HOME"/Arduino/libraries
-          cd "$HOME"/Arduino/libraries
-          ln -s "$GITHUB_WORKSPACE" PION
-          mkdir NDNph esp8266ndn
-          curl -fsLS "https://github.com/yoursunny/NDNph/archive/${NDNPH_VERSION}.tar.gz" | tar -C NDNph -xz --strip-components=1
-          curl -fsLS "https://github.com/yoursunny/esp8266ndn/archive/${ESP8266NDN_VERSION}.tar.gz" | tar -C esp8266ndn -xz --strip-components=1
-        env:
-          NDNPH_VERSION: 2b5a287285dc369ffda410bed2951a1b101d2cdc
-          ESP8266NDN_VERSION: 2dfb2df6168d26daa6d836632596bd4f9cf7d23c
-      - name: Compile examples
+      - name: Copy samples
         run: |
           for F in $(find ./examples -type f -name 'sample.*'); do
             cp -n "${F}" "${F/sample.}"
           done
-          for E in $(find ./examples -name '*.ino' -printf '%h\n'); do
-            echo "::group::${E##*/}"
-            arduino-cli compile -b esp32:esp32:esp32 --warnings more \
-              --build-property 'build.partitions=noota_ffat' \
-              --build-property 'upload.maximum_size=2097152' \
-              "$E"
-            echo "::endgroup::"
-          done
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: esp32:esp32:esp32wrover:PartitionScheme=noota_ffat
+          platforms: |
+            - name: esp32:esp32
+              version: 2.0.17
+          libraries: |
+            - source-path: ./
+            - name: NimBLE-Arduino
+              version: 1.4.1
+            - source-url: https://github.com/yoursunny/NDNph.git
+              version: 2b5a287285dc369ffda410bed2951a1b101d2cdc
+            - source-url: https://github.com/yoursunny/esp8266ndn.git
+              version: 2dfb2df6168d26daa6d836632596bd4f9cf7d23c
   node:
     runs-on: ubuntu-22.04
     strategy:
