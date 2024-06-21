@@ -4,11 +4,10 @@ import { exitClosers, openKeyChain, openUplinks } from "@ndn/cli-common";
 import { Certificate, createVerifier, generateSigningKey } from "@ndn/keychain";
 import { CaProfile } from "@ndn/ndncert";
 import { Data, Name } from "@ndn/packet";
-import { DataStore, PrefixRegStatic, RepoProducer } from "@ndn/repo";
+import { makePersistentDataStore, PrefixRegStatic, RepoProducer } from "@ndn/repo";
 import { Decoder, Encoder } from "@ndn/tlv";
 import strattadbEnvironment from "@strattadb/environment";
 import dotenv from "dotenv";
-import leveldown from "leveldown";
 
 const { makeEnv, parsers } = strattadbEnvironment;
 
@@ -34,7 +33,7 @@ export const env = makeEnv({
 
 export const networkPrefix = new Name(env.networkPrefix);
 
-export const repo = new DataStore(leveldown(env.repo));
+export const repo = await makePersistentDataStore(env.repo);
 exitClosers.push(repo);
 
 /** @type {RepoProducer} */

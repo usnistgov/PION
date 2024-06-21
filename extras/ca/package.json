@@ -10,7 +10,7 @@
     "start": "node src/main.js",
     "typecheck": "tsc"
   },
-  "packageManager": "pnpm@8.14.1",
+  "packageManager": "pnpm@9.4.0+sha256.b6fd0bfda555e7e584ad7e56b30c68b01d5a04f9ee93989f4b93ca8473c49c74",
   "dependencies": {
     "@ndn/cli-common": "https://ndnts-nightly.ndn.today/cli-common.tgz",
     "@ndn/keychain": "https://ndnts-nightly.ndn.today/keychain.tgz",
@@ -20,15 +20,14 @@
     "@ndn/repo": "https://ndnts-nightly.ndn.today/repo.tgz",
     "@ndn/tlv": "https://ndnts-nightly.ndn.today/tlv.tgz",
     "@strattadb/environment": "^8.0.2",
-    "dotenv": "^16.3.1",
-    "leveldown": "^6.1.1",
+    "dotenv": "^16.4.5",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@types/node": "^20.11.5",
+    "@types/node": "^20.14.7",
     "@types/yargs": "^17.0.32",
-    "@yoursunny/xo-config": "^0.56.2",
-    "typescript": "~5.3.3"
+    "@yoursunny/xo-config": "^0.58.0",
+    "typescript": "~5.4.5"
   },
   "engines": {
     "node": "20.*"
