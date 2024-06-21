@@ -3,7 +3,7 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-
+permissions: {}
 jobs:
   cpp:
     runs-on: ubuntu-22.04
@@ -27,14 +27,16 @@ jobs:
           meson compile -C build
   arduino:
     runs-on: ubuntu-22.04
+    env:
+      ARDUINO_BOARD_MANAGER_ADDITIONAL_URLS: |
+        https://espressif.github.io/arduino-esp32/package_esp32_index.json
     steps:
       - uses: arduino/setup-arduino-cli@v1
       - id: cores
         name: Refresh Arduino cores
         run: |
-          echo 'https://espressif.github.io/arduino-esp32/package_esp32_index.json' > ~/arduino-cores.txt
           arduino-cli version
-          arduino-cli update --additional-urls "$(<~/arduino-cores.txt)"
+          arduino-cli update
           echo d=$(sha256sum ~/.arduino15/package_*index.json | sha256sum | cut -d' ' -f1) >> $GITHUB_OUTPUT
       - name: Cache Arduino cores
         uses: actions/cache@v4
@@ -43,8 +45,8 @@ jobs:
           key: cores-${{ steps.cores.outputs.d }}
       - name: Install Arduino cores
         run: |
-          arduino-cli core install esp32:esp32 --additional-urls "$(<~/arduino-cores.txt)"
-          arduino-cli lib install NimBLE-Arduino
+          arduino-cli core install esp32:esp32@2.0.17
+          arduino-cli lib install NimBLE-Arduino@1.4.1
       - uses: actions/checkout@v4
       - name: Prepare Arduino libraries
         run: |
@@ -93,6 +95,8 @@ jobs:
       - run: corepack pnpm typecheck
   go:
     runs-on: ubuntu-22.04
+    env:
+      CGO_ENABLED: 0
     strategy:
       matrix:
         subdir:

@@ -41,7 +41,7 @@ To start the program:
 
 To install the program:
 
-1. Install Go 1.21.
+1. Install Go 1.22.
 2. `go install ./cmd/pion-pcapparse`
 3. `sudo install -t /usr/local/bin ~/go/bin/pion-pcapparse`
 

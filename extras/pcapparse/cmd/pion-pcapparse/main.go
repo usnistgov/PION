@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/gopacket/pcapgo"
+	"github.com/gopacket/gopacket/pcapgo"
 	"github.com/urfave/cli/v2"
 	"github.com/usnistgov/PION/extras/pcapparse/parser"
 )
